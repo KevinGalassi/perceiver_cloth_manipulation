@@ -9,25 +9,12 @@ from einops import repeat
 import os
 
 from PIL import Image
-import matplotlib
-matplotlib.use('Agg')  # Set the backend to Agg (non-GUI)
-
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import matplotlib.cm as cm
 
 
 
-def set_seed(seed):
-   if seed == None :
-      print('Warning : seed is None')
-      return
-   torch.manual_seed(seed)
-   torch.cuda.manual_seed(seed)
-   torch.cuda.manual_seed_all(seed)
-   np.random.seed(seed)
-   torch.backends.cudnn.benchmark = False
-   torch.backends.cudnn.deterministic = True
+from cloth_training.model.model_architecture.model_utils import set_seed
 
 
 class HeatPredictor(nn.Module):
@@ -322,6 +309,9 @@ class HeatPerceiver(nn.Module):
       self.heat_predictor.reset_train()
       self.action_predciton.reset_train()
 
+   def set_seed(self, seed):
+      set_seed(seed)
+      
    def forward(self, pts):
 
 

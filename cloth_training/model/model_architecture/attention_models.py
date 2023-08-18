@@ -9,17 +9,7 @@ import torch.nn.functional as F
 
 from einops import rearrange, repeat
 
-def set_seed(seed):
-   if seed == None :
-      print('Warning : seed is None')
-   torch.manual_seed(seed)
-   torch.cuda.manual_seed(seed)
-   torch.cuda.manual_seed_all(seed)
-   np.random.seed(seed)
-   torch.backends.cudnn.benchmark = False
-   torch.backends.cudnn.deterministic = True
-
-
+from cloth_training.model.model_architecture.model_utils import set_seed
 
 
 class Attention(nn.Module):

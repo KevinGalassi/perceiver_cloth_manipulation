@@ -32,3 +32,4 @@ logs/*.json
 *.png
 *.pickle
 *.numpy
+*.pt
