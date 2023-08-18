@@ -18,7 +18,36 @@ if __name__ == '__main__' :
 
    #load hparams from file
    hyperparameters = [
-                        {'num_epochs' : 2,
+                        {'num_epochs' : 500,
+                        'batch_size' : 8,            
+                        'val_ratio'  : 0.03,
+                        'dataset_ratio' : 0.95,
+                        'seed' : 42,
+
+                        #Heat Predictor Perceiver
+                        'depth' : 1,
+                        'input_dim' : 3,
+                        'input_embedding_dim' : 128,
+                        'num_latents' : 50,
+                        'num_cross_heads' : 4,
+                        'num_output_heads' : 4,
+                        'num_latent_heads' : 4,
+                        'num_latent_layers' : 3,
+                        'lr_heat' : 1e-4,
+
+                        #Point Network
+                        'point_latent_heads' : 4,
+                        'point_latent_layers' : 1,
+                        'lr_point' : 1e-4,
+
+                        # Action parameters
+                        'action_latent_heads' : 4,
+                        'action_cross_heads' : 4,
+                        'action_latent_layers' : 1,
+                        'lr_action' : 1e-4,
+                        },
+                                                
+                        {'num_epochs' : 500,
                         'batch_size' : 8,            
                         'val_ratio'  : 0.03,
                         'dataset_ratio' : 0.95,
@@ -46,30 +75,58 @@ if __name__ == '__main__' :
                         'action_latent_layers' : 3,
                         'lr_action' : 1e-4,
                         },
+                        {'num_epochs' : 500,
+                        'batch_size' : 8,            
+                        'val_ratio'  : 0.03,
+                        'dataset_ratio' : 0.95,
+                        'seed' : 42,
+
+                        #Heat Predictor Perceiver
+                        'depth' : 1,
+                        'input_dim' : 3,
+                        'input_embedding_dim' : 128,
+                        'num_latents' : 50,
+                        'num_cross_heads' : 4,
+                        'num_output_heads' : 4,
+                        'num_latent_heads' : 4,
+                        'num_latent_layers' : 3,
+                        'lr_heat' : 1e-4,
+
+                        #Point Network
+                        'point_latent_heads' : 8,
+                        'point_latent_layers' : 3,
+                        'lr_point' : 1e-4,
+
+                        # Action parameters
+                        'action_latent_heads' : 8,
+                        'action_cross_heads' : 8,
+                        'action_latent_layers' : 3,
+                        'lr_action' : 1e-4,
+                        },
                      ]
 
 
    for hparams in hyperparameters :
-      print(f'Start run with hyperparameters: \n {hparams}')
-
-      set_seed(hparams['seed'])
-
-      # Iterating over all combinations of hyperparameters
-      dataset = torch.load(dataset_path)
-      dataset.set_obs_type('heatmap')
-      dataset.set_output_type('heatmap')
-      dataset.to_device(torch.device('cpu'))
-      dataset.shuffle_points()
-
-      val_sample  = int(len(dataset) * hparams['val_ratio'])
-      test_sample = int(len(dataset) * (1-hparams['dataset_ratio']))
-      train_dataset, val_dataset, _ = torch.utils.data.random_split(dataset, [len(dataset) - val_sample -test_sample, val_sample, test_sample])
-      
-      train_loader = DataLoader(train_dataset, batch_size=hparams['batch_size'], shuffle=True)
-      val_loader   = DataLoader(val_dataset, batch_size=hparams['batch_size'], shuffle=False)
-
-
       try :
+         print(f'Start run with hyperparameters: \n {hparams}')
+
+         set_seed(hparams['seed'])
+
+         # Iterating over all combinations of hyperparameters
+         dataset = torch.load(dataset_path)
+         dataset.set_obs_type('heatmap')
+         dataset.set_output_type('heatmap')
+         dataset.to_device(torch.device('cpu'))
+         dataset.shuffle_points()
+
+         val_sample  = int(len(dataset) * hparams['val_ratio'])
+         test_sample = int(len(dataset) * (1-hparams['dataset_ratio']))
+         train_dataset, val_dataset, _ = torch.utils.data.random_split(dataset, [len(dataset) - val_sample -test_sample, val_sample, test_sample])
+         
+         train_loader = DataLoader(train_dataset, batch_size=hparams['batch_size'], shuffle=True)
+         val_loader   = DataLoader(val_dataset, batch_size=hparams['batch_size'], shuffle=False)
+
+
          # MODEL CREATION
          agent = HeatPerceiver(**hparams)
          agent.to(device=torch.device('cuda'))

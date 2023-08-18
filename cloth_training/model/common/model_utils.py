@@ -763,8 +763,42 @@ def get_run_counter(log_dir):
    return run_counter + 1
 
 
-
-#
+class EarlyStopper:
+    def __init__(self, patience=5, mode='min'):
+        self.patience = patience
+        self.mode = mode
+        self.best_metric = np.inf if mode == 'min' else -np.inf
+        self.no_improvement_count = 0
+        self.stopped_epoch = 0
+        self.early_stop = False
+        self.model_checkpoint = None
+        
+    def should_stop(self, metric):
+        if self.mode == 'min':
+            improvement = metric < self.best_metric
+        else:
+            improvement = metric > self.best_metric
+        
+        if improvement:
+            self.no_improvement_count = 0
+            self.best_metric = metric
+            self.model_checkpoint = self._get_model_state()
+        else:
+            self.no_improvement_count += 1
+            if self.no_improvement_count >= self.patience:
+                self.early_stop = True
+                self.stopped_epoch = self.epoch
+        return self.early_stop
+    
+    def _get_model_state(self):
+        return {
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epoch': self.epoch,
+            'best_metric': self.best_metric
+        }
+    
+  
 
 
 #################################################
