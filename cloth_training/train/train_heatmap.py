@@ -141,12 +141,12 @@ if __name__ == '__main__' :
             epoch_train_result = agent.trainer_heat(train_loader)                       
             if write_log:
                for key, value in epoch_train_result.items():
-                     wandb.log({f'Train/heatmap/{key}': value}, step=epoch)
+                  wandb.log({f'Train/heatmap/{key}': value}, step=epoch)
                      
-            epoch_val_result = agent.validate(val_loader)
+            epoch_val_result = agent.validate_heat(val_loader)
             if write_log:
                for key, value in epoch_val_result.items():
-                     wandb.log({f'Val/heatmap/{key}': value}, step=epoch)
+                  wandb.log({f'Val/heatmap/{key}': value}, step=epoch)
                      
          if save_model :
             model_path = os.path.join(save_model_path, str(run_id)+'.pth')
