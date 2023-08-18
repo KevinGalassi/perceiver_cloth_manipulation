@@ -221,7 +221,7 @@ if __name__ == '__main__' :
    agent = VisionTransformer(**hparams)
 
 
-   dataset = torch.load('/home/kgalassi/code/cloth/cloth_training/cloth_training/dagger/pull/pull_dataset.pt')
+   dataset = torch.load('./cloth_training/dataset/ablation.pt')
    dataset.set_obs_type('vit')
    dataset.set_output_type('vit')
    dataset.to_device('cpu')

@@ -14,6 +14,7 @@ if __name__ == '__main__' :
    save_model_path = './cloth_training/saved_model'
    write_log = True
    save_model = True
+   dataset_path = './cloth_training/dataset/ablation/ablation.pt'
 
    #load hparams from file
    hyperparameters = [
@@ -54,7 +55,7 @@ if __name__ == '__main__' :
       set_seed(hparams['seed'])
 
       # Iterating over all combinations of hyperparameters
-      dataset = torch.load('/home/kgalassi/code/cloth/cloth_training/cloth_training/dataset/pull/pull_dataset.pt')
+      dataset = torch.load(dataset_path)
       dataset.set_obs_type('heatmap')
       dataset.set_output_type('heatmap')
       dataset.to_device(torch.device('cpu'))

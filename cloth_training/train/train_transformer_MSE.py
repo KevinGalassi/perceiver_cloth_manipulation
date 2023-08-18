@@ -14,6 +14,7 @@ if __name__ == '__main__' :
    write_log = True
    save_model = True
    save_model_path = './cloth_training/saved_model'
+   dataset_path = './cloth_training/dataset/ablation/ablation.pt'
 
    hyperparameters = [
                         {'num_epochs' : 300,
@@ -65,7 +66,7 @@ if __name__ == '__main__' :
       set_seed(hparams['seed'])
 
       # Iterating over all combinations of hyperparameters
-      dataset = torch.load('/home/kgalassi/code/cloth/cloth_training/cloth_training/dagger/pull/pull_dataset.pt')
+      dataset = torch.load(dataset_path)
       dataset.set_obs_type('heatmap')
       dataset.set_output_type('heatmap')
       dataset.to_device(torch.device('cpu'))
