@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from cloth_training.model.model_architecture.model_utils import get_precision_at_k
-from cloth_training.model.model_architecture.model_utils import Lamb
-from cloth_training.model.model_architecture.attention_models import Attention, FeedForward
+from cloth_training.model.common.model_utils import get_precision_at_k
+from cloth_training.model.common.model_utils import Lamb
+from cloth_training.model.common.attention_models import Attention, FeedForward
 from einops import repeat
 import os
 
@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 
 
 
-from cloth_training.model.model_architecture.model_utils import set_seed
+from cloth_training.model.common.model_utils import set_seed
 
 
 class HeatPredictor(nn.Module):
@@ -127,7 +127,7 @@ class HeatPredictor(nn.Module):
          # Log learning rate to Tensorboard
          lr = self.optimizer.param_groups[0]["lr"]
                          
-      self.training_step = {'train_loss': total_train_loss / len(train_loader),
+      self.training_step = {'heat_train_loss': total_train_loss / len(train_loader),
                            'distance_prob_heatmap': distance_prob / len(train_loader),
                            'lr': lr
                            }
@@ -172,7 +172,7 @@ class HeatPredictor(nn.Module):
 
 
       self.scheduler.step(total_val_loss)
-      val_step = {'val_loss': total_val_loss/ len(val_loader),
+      val_step = {'heat_val_loss': total_val_loss/ len(val_loader),
                   'distance_prob_heatmap': distance_prob / len(val_loader),
                   }
       
@@ -406,9 +406,9 @@ class HeatPerceiver(nn.Module):
          # Log learning rate to Tensorboard
          lr = self.point_prediction.optimizer.param_groups[0]["lr"]
                          
-      self.training_step = {'train_loss': total_train_loss / len(train_loader),
+      self.training_step = {'point_train_loss': total_train_loss / len(train_loader),
                            'accuracy' : acc / len(train_loader),
-                           'precision4': precision_at_4 / len(train_loader),
+                           'precision5': precision_at_4 / len(train_loader),
                            'precision3': precision_at_3 / len(train_loader),
                            'precision2': precision_at_2 / len(train_loader),
                            'distance_prob': distance_prob / len(train_loader),
@@ -467,9 +467,9 @@ class HeatPerceiver(nn.Module):
 
 
       self.point_prediction.scheduler.step(total_val_loss)
-      val_step = {'val_loss': total_val_loss/ len(val_loader),
+      val_step = {'point_val_loss': total_val_loss/ len(val_loader),
                   'accuracy' : acc/len(val_loader),
-                  'precision4': precision_at_4 / len(val_loader),
+                  'precision5': precision_at_4 / len(val_loader),
                   'precision3': precision_at_3 / len(val_loader),
                   'precision2': precision_at_2 / len(val_loader),
                   'distance_prob': distance_prob / len(val_loader),
@@ -540,7 +540,7 @@ class HeatPerceiver(nn.Module):
          distance_dy += torch.sqrt(torch.sum((a[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
          angle += torch.sqrt(torch.sum((torch.atan2(a[:,-1], a[:,-2]) - torch.atan2(gt_action[:,-1], gt_action[:,-2]))**2, dim=0)).sum().item() / b
 
-      self.training_step = {'train_action_loss': total_train_loss / len(train_loader),
+      self.training_step = {'action_train_loss': total_train_loss / len(train_loader),
                            'distance_d': distance_d / len(train_loader),
                            'distance_dx': distance_dx / len(train_loader),
                            'distance_dy': distance_dy / len(train_loader),

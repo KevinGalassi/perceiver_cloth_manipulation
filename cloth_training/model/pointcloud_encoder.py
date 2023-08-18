@@ -1,16 +1,16 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from cloth_training.model.model_architecture.dataset_gen import GymClothDataset
-from cloth_training.model.model_architecture.attention_models import Attention, FeedForward
-from cloth_training.model.model_architecture.model_utils import Lamb
+from cloth_training.dataset.dataset_gen import GymClothDataset
+from cloth_training.model.common.attention_models import Attention, FeedForward
+from cloth_training.model.common.model_utils import Lamb
 
 
 from einops import repeat
 
 import os
 
-from cloth_training.model.model_architecture.model_utils import set_seed
+from cloth_training.model.common.model_utils import set_seed
 
 
 class ChamferLoss(nn.Module):

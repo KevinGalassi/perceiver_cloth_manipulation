@@ -1,14 +1,11 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
-from tqdm import tqdm
 
-from cloth_training.model.model_architecture.model_utils import get_precision_at_k, set_seed
-from cloth_training.model.model_architecture.attention_models import TransformerNetwork
-from cloth_training.model.model_architecture.model_utils import Lamb
+from cloth_training.model.common.model_utils import set_seed
+from cloth_training.model.common.model_utils import Lamb
 
-from cloth_training.model.model_architecture.attention_models import Attention, FeedForward
+from cloth_training.model.common.attention_models import Attention, FeedForward
 from einops import repeat
 
 
@@ -16,7 +13,7 @@ import os
 
 
 
-class DaggerTransformerCES(nn.Module):
+class DaggerTransformer(nn.Module):
 
    def __init__(self, **kwargs) -> None:
       '''
@@ -34,6 +31,7 @@ class DaggerTransformerCES(nn.Module):
 
       input_embedding_dim   = kwargs.get('input_embedding_dim')
       num_latent_heads      = kwargs.get('num_latent_heads')
+      num_output_heads      = kwargs.get('num_output_heads')
       self.layers           = kwargs.get('layers')
       self.depth  = kwargs.get('depth')
       self.lr          = kwargs.get('lr')
@@ -58,24 +56,26 @@ class DaggerTransformerCES(nn.Module):
          self.transformer_layers.append(FeedForward(input_embedding_dim))
 
 
-      self.output_probability_layer = nn.Sequential(
-         nn.Linear(input_embedding_dim, input_embedding_dim//2),
-         nn.ReLU(),
-         nn.Linear(input_embedding_dim//2, 1)
-      )
+      #Output latent vector
+      self.output = nn.Parameter(torch.normal(0, 0.2, (1, input_embedding_dim)))
 
-      self.output_action_layer = nn.Sequential(
-         nn.Linear(input_embedding_dim, input_embedding_dim//2),
-         nn.ReLU(),
-         nn.Linear(input_embedding_dim//2, 2)
-      )
-      self.loss_weight = nn.Parameter(torch.tensor(0.5))
+      # Output cross-attention of latent space with input as query      
+      self.output_cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_output_heads, batch_first=True)
+      
+      # Decoder
+      self.output_layer = nn.Sequential(
+               nn.Linear(input_embedding_dim, input_embedding_dim//2),
+               nn.ReLU(),
+               nn.Linear(input_embedding_dim//2, 4)
+            )
+
+      self.criterion  = nn.MSELoss()
+
       self.best_val_loss = float('inf')
 
 
    def reset_train(self) :
-      self.criterion_p = nn.CrossEntropyLoss()
-      self.criterion_a = nn.MSELoss()
+      self.criterion = nn.MSELoss()
       self.optimizer = Lamb(self.parameters(), lr=self.lr)
       self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
 
@@ -89,10 +89,12 @@ class DaggerTransformerCES(nn.Module):
             x = self.transformer_layers[i](x)
             x = self.transformer_layers[i+1](x)
 
-      p = self.output_probability_layer(x)
-      a = self.output_action_layer(x)
 
-      return p, a.tanh()
+      o = repeat(self.output, 'n d -> b n d', b = x.shape[0])
+      o = self.output_cross_attention(o, context = x)
+      x = self.output_layer(o)
+
+      return x.tanh()
 
 
    def trainer(self, train_loader, device='cuda') :
@@ -112,19 +114,12 @@ class DaggerTransformerCES(nn.Module):
          pts = obs[0].to(device)
          gt_gaussian = gt[0].to(device)
          gt_action = gt[1].to(device)
-         gt_prob = torch.zeros_like(gt_action[:,0]).to(device)
-         gt_prob[torch.where(gt_action[:,0] == 1)[0]] = 1
-         
-         p,a = self.forward(pts)
+
+         p = self.forward(pts)
          p = p.reshape(b,-1)
          # Get loss function
 
-         id_taken = torch.argmax(p, dim=1)
-         action = a[torch.arange(b),id_taken]
-         pt = pts[torch.arange(b),id_taken]
-
-
-         loss = (1-self.loss_weight) * self.criterion_p(p, gt_prob) + self.loss_weight * self.criterion_a(action, gt_action[:,2:])
+         loss = self.criterion(p, gt_action)
 
          self.optimizer.zero_grad()
          loss.backward()
@@ -134,11 +129,11 @@ class DaggerTransformerCES(nn.Module):
 
          lr = self.optimizer.param_groups[0]["lr"]
 
-         distance_prob += torch.sqrt(torch.sum((pt[:,:2] - gt_action[:,:2])**2, dim=1)).sum().item() / b
-         distance_d += torch.sqrt(torch.sum((action - gt_action[:,2:])**2, dim=1)).sum().item() / b
-         distance_dx += torch.sqrt(torch.sum((action[:,-2] - gt_action[:,-2])**2, dim=0)).sum().item() / b
-         distance_dy += torch.sqrt(torch.sum((action[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
-         angle += torch.sqrt(torch.sum((torch.atan2(action[:,-1], action[:,-2]) - torch.atan2(gt_action[:,-1], gt_action[:,-2]))**2, dim=0)).sum().item() / b
+         distance_prob += torch.sqrt(torch.sum((p[:,:2] - gt_action[:,:2])**2, dim=1)).sum().item() / b
+         distance_d += torch.sqrt(torch.sum((p[:,2:] - gt_action[:,2:])**2, dim=1)).sum().item() / b
+         distance_dx += torch.sqrt(torch.sum((p[:,-2] - gt_action[:,-2])**2, dim=0)).sum().item() / b
+         distance_dy += torch.sqrt(torch.sum((p[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
+         angle += torch.sqrt(torch.sum((torch.atan2(p[:,-1], p[:,-2]) - torch.atan2(gt_action[:,-1], gt_action[:,-2]))**2, dim=0)).sum().item() / b
                          
       self.training_step = {'train_loss': total_train_loss / len(train_loader),
                            'distance_d': distance_d / len(train_loader),
@@ -170,27 +165,22 @@ class DaggerTransformerCES(nn.Module):
             pts = obs[0].to(device)
             gt_gaussian = gt[0].to(device)
             gt_action = gt[1].to(device)
-            gt_prob = torch.zeros_like(gt_action[:,0]).to(device)
-            gt_prob[torch.where(gt_action[:,0] == 1)[0]] = 1
-            
+
             p = self.forward(pts)
             p = p.reshape(b,-1)
 
-            id_taken = torch.argmax(p, dim=1)
-            action = a[torch.arange(b),id_taken]
-            pt = pts[torch.arange(b),id_taken]
-
             # Get loss function
-            loss = (1-self.loss_weight) * self.criterion_p(p, gt_prob) + self.loss_weight * self.criterion_a(action, gt_action[:,2:])           
-            total_val_loss += loss.item()
+            prob_loss = self.criterion(p, gt_action)
+            
+            total_val_loss += prob_loss.item()
 
             #Get accuracy
-            distance_prob += torch.sqrt(torch.sum((pt[:,:2] - gt_action[:,:2])**2, dim=1)).sum().item() / b
-            distance_d += torch.sqrt(torch.sum((action - gt_action[:,2:])**2, dim=1)).sum().item() / b
-            distance_dx += torch.sqrt(torch.sum((action[:,-2] - gt_action[:,-2])**2, dim=0)).sum().item() / b
-            distance_dy += torch.sqrt(torch.sum((action[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
-            angle += torch.sqrt(torch.sum((torch.atan2(action[:,-1], action[:,-2]) - torch.atan2(gt_action[:,-1], gt_action[:,-2]))**2, dim=0)).sum().item() / b
-                           
+            distance_prob += torch.sqrt(torch.sum((p[:,:2] - gt_action[:,:2])**2, dim=1)).sum().item() / b
+            distance_d += torch.sqrt(torch.sum((p[:,2:] - gt_action[:,2:])**2, dim=1)).sum().item() / b
+            distance_dx += torch.sqrt(torch.sum((p[:,-2] - gt_action[:,-2])**2, dim=0)).sum().item() / b
+            distance_dy += torch.sqrt(torch.sum((p[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
+            angle += torch.sqrt(torch.sum((torch.atan2(p[:,-1], p[:,-2]) - torch.atan2(gt_action[:,-1], gt_action[:,-2]))**2, dim=0)).sum().item() / b
+
 
       self.scheduler.step(total_val_loss)
       self.val_step = {'val_loss': total_val_loss/ len(val_loader),

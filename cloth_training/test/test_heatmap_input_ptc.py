@@ -3,16 +3,16 @@
 
 
 import torch
-from cloth_training.model.model_architecture.dataset_gen import GymClothDataset
-from cloth_training.model.perceiver_heatmap import HeatPerceiver
+from cloth_training.dataset.dataset_gen import GymClothDataset
+from cloth_training.model.paper.perceiver_heatmap import HeatPerceiver
 
 import os
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 
-from cloth_training.model.model_architecture.model_utils import iterate_hyperparameters, set_seed
-from cloth_training.model.model_architecture.model_utils import get_precision_at_k
+from cloth_training.model.common.model_utils import iterate_hyperparameters, set_seed
+from cloth_training.model.common.model_utils import get_precision_at_k
 
 if __name__ == '__main__' :
    write_log = True

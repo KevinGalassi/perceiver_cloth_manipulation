@@ -1,33 +1,21 @@
-
-
-
-
 import torch
-from cloth_training.model.model_architecture.dataset_gen import GymClothDataset
-from cloth_training.model.perceiver_heatmap import HeatPerceiver
+from cloth_training.dataset.dataset_gen import GymClothDataset
+from cloth_training.model.paper.perceiver_heatmap import HeatPerceiver
 
-import os, pickle, sys, time
+import os, pickle, time
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-
-
-from cloth_training.model.model_architecture.model_utils import iterate_hyperparameters, set_seed
-from cloth_training.train.utils import trainer
-
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+import wandb
+from cloth_training.model.common.model_utils import set_seed
 
 if __name__ == '__main__' :
 
-
-   folder_name = 'heat5'
+   folder_name = 'transformer_heat'
+   save_model_path = './cloth_training/saved_model'
    write_log = True
    save_model = True
 
-
    #load hparams from file
-
-
    hyperparameters = [
                         {'num_epochs' : 2,
                         'batch_size' : 8,            
@@ -60,13 +48,10 @@ if __name__ == '__main__' :
                      ]
 
 
-
-
-   #for hparams in tqdm(iterate_hyperparameters(hyperparameters), desc='Hyperparameter Training'):
-
    for hparams in hyperparameters :
       print(f'Start run with hyperparameters: \n {hparams}')
 
+      set_seed(hparams['seed'])
 
       # Iterating over all combinations of hyperparameters
       dataset = torch.load('/home/kgalassi/code/cloth/cloth_training/cloth_training/dataset/pull/pull_dataset.pt')
@@ -88,91 +73,74 @@ if __name__ == '__main__' :
          agent = HeatPerceiver(**hparams)
          agent.to(device=torch.device('cuda'))
          ### LOG ##
-         log_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs', folder_name)
-         model_base_path   = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'saved_model', folder_name)
-         run_id = time.strftime("%m-%d-%H-%M")
+         run_id = folder_name + '-'  + str(time.strftime("%m-%d-%H-%M"))
+         wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)
 
 
-         if write_log:
-            from torch.utils.tensorboard import SummaryWriter
-            print('Logging to ', os.path.join(log_path, str(run_id)))
-            writer = SummaryWriter(log_dir=os.path.join(log_path, str(run_id)))
-            writer.add_text('Hyperparameters', str(hparams))
-            writer.flush()
-            
 
          ###### 1) TRAIN HEATMAP #####
          for epoch in tqdm(range(hparams['num_epochs']), desc='Epoch training'):
-
-            epoch_train_result = agent.trainer_heat(train_loader)
-            if write_log :
+            epoch_train_result = agent.trainer_heat(train_loader)                       
+            if write_log:
                for key, value in epoch_train_result.items():
-                  writer.add_scalar(f'TrainHeat/{key}', value, epoch)
-               writer.flush()
-
-            epoch_val_result = agent.validate_heat(val_loader)
-
-            if write_log :
+                     wandb.log({f'Train/heatmap/{key}': value}, step=epoch)
+                     
+            epoch_val_result = agent.validate(val_loader)
+            if write_log:
                for key, value in epoch_val_result.items():
-                  writer.add_scalar(f'ValHeat/{key}', value, epoch)
-               writer.flush()
-
-            if save_model :
-               model_base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'saved_model', folder_name)
-               model_path = os.path.join(model_base_path, str(run_id)+'.pth')
-               agent.save_best_model(model_path)
-               
-               with open(os.path.join(model_base_path, f'{run_id}_hparams.pickle'), 'wb') as f:
-                  pickle.dump(hparams, f, protocol=4)
+                     wandb.log({f'Val/heatmap/{key}': value}, step=epoch)
+                     
+         if save_model :
+            model_path = os.path.join(save_model_path, str(run_id)+'.pth')
+            agent.save_best_model(model_path)
+            
+            with open(os.path.join(save_model_path, f'{run_id}_hparams.pickle'), 'wb') as f:
+               pickle.dump(hparams, f, protocol=4)
 
 
          ###### 2) TRAIN POINT #####
          for epoch in tqdm(range(hparams['num_epochs']), desc='Point training'):
 
             epoch_train_result = agent.trainer_pointprediction(train_loader)
-            if write_log :
+            if write_log:
                for key, value in epoch_train_result.items():
-                  writer.add_scalar(f'TrainPoint/{key}', value, epoch)
-               writer.flush()
-
-            epoch_val_result = agent.validate_pointprediction(val_loader)
-
-            if write_log :
+                     wandb.log({f'Train/{key}': value}, step=epoch)
+                     
+            epoch_val_result = agent.validate(val_loader)
+            if write_log:
                for key, value in epoch_val_result.items():
-                  writer.add_scalar(f'ValPoint/{key}', value, epoch)
-               writer.flush()
+                     wandb.log({f'Val/{key}': value}, step=epoch)
+                     
+         if save_model :
+            model_path = os.path.join(save_model_path, str(run_id)+'.pth')
+            agent.save_best_model(model_path)
+            
+            with open(os.path.join(save_model_path, f'{run_id}_hparams.pickle'), 'wb') as f:
+               pickle.dump(hparams, f, protocol=4)
 
-            if save_model :
-               model_base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'saved_model', folder_name)
-               model_path = os.path.join(model_base_path, str(run_id)+'.pth')
-               agent.save_best_model(model_path)
-               
-               with open(os.path.join(model_base_path, f'{run_id}_hparams.pickle'), 'wb') as f:
-                  pickle.dump(hparams, f, protocol=4)
 
          ###### 3) TRAIN ACTION #####
          for epoch in tqdm(range(hparams['num_epochs']), desc='Action training'):
 
             epoch_train_result = agent.trainer_action(train_loader)
-            if write_log :
+            if write_log:
                for key, value in epoch_train_result.items():
-                  writer.add_scalar(f'TrainAction/{key}', value, epoch)
-               writer.flush()
-
-            epoch_val_result = agent.validate_action(val_loader)
-
-            if write_log :
+                     wandb.log({f'Train/{key}': value}, step=epoch)
+                     
+            epoch_val_result = agent.validate(val_loader)
+            
+            if write_log:
                for key, value in epoch_val_result.items():
-                  writer.add_scalar(f'ValAction/{key}', value, epoch)
-               writer.flush()
+                     wandb.log({f'Val/{key}': value}, step=epoch)
+                     
 
-            if save_model :
-               model_base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'saved_model', folder_name)
-               model_path = os.path.join(model_base_path, str(run_id)+'.pth')
-               agent.save_best_model(model_path)
-               
-               with open(os.path.join(model_base_path, f'{run_id}_hparams.pickle'), 'wb') as f:
-                  pickle.dump(hparams, f, protocol=4)
+         if save_model :
+            model_base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'saved_model', folder_name)
+            model_path = os.path.join(model_base_path, str(run_id)+'.pth')
+            agent.save_best_model(model_path)
+            
+            with open(os.path.join(model_base_path, f'{run_id}_hparams.pickle'), 'wb') as f:
+               pickle.dump(hparams, f, protocol=4)
 
       except RuntimeError as e:
          print('Fail to load the configuration, continu....')

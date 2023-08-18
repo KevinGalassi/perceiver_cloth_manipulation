@@ -2,7 +2,7 @@
 
 
 import torch
-from cloth_training.model.model_architecture.dataset_gen import GymClothDataset
+from cloth_training.dataset.dataset_gen import GymClothDataset
 from cloth_training.model.vit_encoder import VisionTransformer
 
 import os, pickle, time

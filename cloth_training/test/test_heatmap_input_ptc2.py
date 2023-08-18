@@ -3,8 +3,8 @@
 
 
 import torch
-from cloth_training.model.model_architecture.dataset_gen import GymClothDataset
-from cloth_training.model.perceiver_heatmap import HeatPerceiver
+from cloth_training.dataset.dataset_gen import GymClothDataset
+from cloth_training.model.paper.perceiver_heatmap import HeatPerceiver
 
 import os
 
@@ -69,7 +69,7 @@ def poitnclouds_plot(pointcloud, pts) :
 
 
 import pickle
-from cloth_training.model.model_architecture.model_utils import depth_to_point_cloud, random_point_sampling, farthest_point_sampling, world_transform
+from cloth_training.model.common.model_utils import depth_to_point_cloud, random_point_sampling, farthest_point_sampling, world_transform
 import numpy as np
 import matplotlib.pyplot as plt
 

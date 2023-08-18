@@ -4,11 +4,10 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-from cloth_training.model.model_architecture.model_utils import get_precision_at_k, set_seed
-from cloth_training.model.model_architecture.attention_models import TransformerNetwork
-from cloth_training.model.model_architecture.model_utils import Lamb
+from cloth_training.model.common.model_utils import get_precision_at_k, set_seed
+from cloth_training.model.common.model_utils import Lamb
 
-from cloth_training.model.model_architecture.attention_models import Attention, FeedForward
+from cloth_training.model.common.attention_models import Attention, FeedForward
 from einops import repeat
 
 

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from cloth_training.model.model_architecture.model_utils import layer_init
+from cloth_training.model.common.model_utils import layer_init
 
 
 class OneStageNetwork(nn.Module) :

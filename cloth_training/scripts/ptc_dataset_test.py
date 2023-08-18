@@ -2,7 +2,7 @@ import torch
 import os
 import time
 
-from cloth_training.model.model_architecture.dataset_gen import GymClothDataset
+from cloth_training.dataset.dataset_gen import GymClothDataset
 
 import numpy as np
 import matplotlib.pyplot as plt

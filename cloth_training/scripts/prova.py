@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import torch
 
 
-from cloth_training.model.model_architecture.attention_models import Attention, FeedForward
+from cloth_training.model.common.attention_models import Attention, FeedForward
 
 
 from scipy.spatial.distance import cdist

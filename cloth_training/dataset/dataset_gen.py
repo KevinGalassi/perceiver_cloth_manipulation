@@ -7,7 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import os, pickle
 
-from cloth_training.model.model_architecture.model_utils import set_seed
+from cloth_training.model.common.model_utils import set_seed
 
 
 OBS_TYPE = ['rgb', 'd', 'rgbd', 'pts', 'heatmap', 'all', 'ptc', 'heatmap+ptc', 'vit']

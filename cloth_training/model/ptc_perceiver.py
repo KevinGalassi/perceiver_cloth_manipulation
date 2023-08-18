@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from cloth_training.model.model_architecture.model_utils import get_precision_at_k
-from cloth_training.model.model_architecture.model_utils import Lamb
-from cloth_training.model.model_architecture.attention_models import Attention, FeedForward
+from cloth_training.model.common.model_utils import get_precision_at_k
+from cloth_training.model.common.model_utils import Lamb
+from cloth_training.model.common.attention_models import Attention, FeedForward
 from einops import repeat
 import os
 
@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 
 
 
-from cloth_training.model.model_architecture.model_utils import set_seed
+from cloth_training.model.common.model_utils import set_seed
 
 
 class HeatPredictor(nn.Module):

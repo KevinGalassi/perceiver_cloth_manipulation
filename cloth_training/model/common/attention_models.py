@@ -3,13 +3,13 @@ import torch
 import torch.nn as nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer, LayerNorm
 
-from cloth_training.model.model_architecture.model_utils import layer_init
+from cloth_training.model.common.model_utils import layer_init
 import numpy as np
 import torch.nn.functional as F
 
 from einops import rearrange, repeat
 
-from cloth_training.model.model_architecture.model_utils import set_seed
+from cloth_training.model.common.model_utils import set_seed
 
 
 class Attention(nn.Module):

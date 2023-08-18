@@ -12,7 +12,7 @@ import os, pickle
 from cloth_training.utils.pointcloud_utils import *
 from cloth_training.utils.feature_extraction_utils import compute_surface_curvature
 
-from cloth_training.model.model_architecture.model_utils import set_seed
+from cloth_training.model.common.model_utils import set_seed
 
 
 import matplotlib.pyplot as plt
