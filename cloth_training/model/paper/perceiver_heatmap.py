@@ -28,7 +28,7 @@ class HeatPredictor(nn.Module):
       num_latent_heads      = kwargs.get('num_latent_heads')
       self.num_latent_layers = kwargs.get('num_latent_layers')
       self.lr                = kwargs.get('lr_heat')
-      seed                   = kwargs.get('seed',)
+      seed                   = kwargs.get('seed')
 
       set_seed(seed)
       super().__init__()
@@ -190,7 +190,7 @@ class PointPredictor(nn.Module):
       self.num_latent_layers = kwargs.get('point_latent_layers')
       self.lr                = kwargs.get('lr_point')
       seed                   = kwargs.get('seed')
-
+      set_seed(seed)
       super().__init__()
 
       # Input Feature Embedding
@@ -284,6 +284,7 @@ class HeatPerceiver(nn.Module):
                         num_latent_heads = num_latent_heads,
                         num_latent_layers = num_latent_layers,
                         lr_heat = lr_heat,
+                        seed = seed
                         )
 
       self.point_prediction = PointPredictor(
@@ -291,6 +292,7 @@ class HeatPerceiver(nn.Module):
                                  point_latent_heads = point_latent_heads,
                                  point_latent_layers = point_latent_layers,
                                  lr_point = lr_point,
+                                 seed  = seed
                                  )
 
       self.action_predciton = ActionPredictor(
@@ -299,6 +301,7 @@ class HeatPerceiver(nn.Module):
                         action_latent_heads = action_latent_heads,
                         action_latent_layers = action_latent_layers,
                         lr_action = lr_action
+                        seed = seed
                         )
 
 
@@ -856,8 +859,9 @@ class ActionPredictor(nn.Module):
       num_latent_heads       = kwargs.get('action_latent_heads')
       self.num_latent_layers = kwargs.get('action_latent_layers')
       self.lr                = kwargs.get('lr_action')
-      seed                   = kwargs.get('seed')
-
+      seed = kwargs.get('seed', None)
+      set_seed(seed)
+      
       # Input Feature Embedding
       self.pts_embedding = nn.Sequential(
          nn.Linear(2, input_embedding_dim//2),

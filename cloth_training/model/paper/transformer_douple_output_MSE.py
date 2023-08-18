@@ -4,7 +4,7 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-from cloth_training.model.common.model_utils import get_precision_at_k, set_seed
+from cloth_training.model.common.model_utils import set_seed
 from cloth_training.model.common.model_utils import Lamb
 
 from cloth_training.model.common.attention_models import Attention, FeedForward
@@ -36,7 +36,7 @@ class DaggerTransformerMSE(nn.Module):
       self.layers           = kwargs.get('layers')
       self.depth  = kwargs.get('depth')
       self.lr          = kwargs.get('lr')
-      seed        = kwargs.get('seed')
+      seed        = kwargs.get('seed', None)
 
       set_seed(seed)
 
