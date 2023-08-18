@@ -11,10 +11,10 @@ from cloth_training.model.common.model_utils import set_seed
 if __name__ == '__main__' :
 
    folder_name = 'transformer_heat'
-   save_model_path = './cloth_training/saved_model'
+   save_model_path = './saved_model'
    write_log = True
    save_model = True
-   dataset_path = './cloth_training/dataset/ablation/ablation.pt'
+   dataset_path = './dataset/ablation/ablation.pt'
 
    #load hparams from file
    hyperparameters = [

@@ -13,7 +13,7 @@ if __name__ == '__main__' :
 
    folder_name = 'transformer_ces'
    save_model_path = './cloth_training/saved_model'
-   dataset_path = './cloth_training/dataset/ablation/ablation.pt'
+   dataset_path = './dataset/ablation/ablation.pt'
    write_log = True
    save_model = True
 

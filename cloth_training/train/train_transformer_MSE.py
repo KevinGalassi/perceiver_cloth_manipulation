@@ -14,8 +14,8 @@ if __name__ == '__main__' :
    folder_name = 'transformer_mse'
    write_log = True
    save_model = True
-   save_model_path = './cloth_training/saved_model'
-   dataset_path = './cloth_training/dataset/ablation/ablation.pt'
+   save_model_path = './saved_model'
+   dataset_path = './dataset/ablation/ablation.pt'
 
    hyperparameters = [
                         {'num_epochs' : 300,
