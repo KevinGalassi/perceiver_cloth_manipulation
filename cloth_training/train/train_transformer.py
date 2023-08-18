@@ -53,8 +53,8 @@ if __name__ == '__main__' :
 
 
    hyperparameters = [
-                        {'num_epochs' : 1,
-                        'batch_size' : 64,            
+                        {'num_epochs' : 10,
+                        'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
 
@@ -66,8 +66,8 @@ if __name__ == '__main__' :
                         'num_output_heads' : 4,
                         'lr' : 1e-4,
                         },
-                        {'num_epochs' : 1,
-                        'batch_size' : 64,            
+                        {'num_epochs' : 10,
+                        'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
 
@@ -105,7 +105,6 @@ if __name__ == '__main__' :
 
       # MODEL CREATION
       agent = DaggerTransformer(**hparams)
-      input('pippo')
       agent.to('cuda:0')
       ### LOG ##
       run_id = folder_name + '-'  + str(time.strftime("%m-%d-%H-%M"))
