@@ -193,7 +193,7 @@ class DaggerTransformerCES(nn.Module):
                            
 
       self.scheduler.step(total_val_loss)
-      self.val_step = {'val_loss': total_val_loss/ len(val_loader),
+      val_step = {'val_loss': total_val_loss/ len(val_loader),
                         'distance_d': distance_d / len(val_loader),
                         'distance_dx': distance_dx / len(val_loader),
                         'distance_dy': distance_dy / len(val_loader),

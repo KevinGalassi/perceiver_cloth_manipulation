@@ -136,7 +136,7 @@ class DaggerTransformerMSE(nn.Module):
          distance_dy += torch.sqrt(torch.sum((action[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
          angle += torch.sqrt(torch.sum((torch.atan2(action[:,-1], action[:,-2]) - torch.atan2(gt_action[:,-1], gt_action[:,-2]))**2, dim=0)).sum().item() / b
                          
-      self.training_step = {'train_loss': total_train_loss / len(train_loader),
+      training_step = {'train_loss': total_train_loss / len(train_loader),
                            'distance_d': distance_d / len(train_loader),
                            'distance_dx': distance_dx / len(train_loader),
                            'distance_dy': distance_dy / len(train_loader),
@@ -145,7 +145,7 @@ class DaggerTransformerMSE(nn.Module):
                            'lr': lr
                            }
 
-      return self.training_step
+      return training_step
    
 
    def validate(self, val_loader, device='cuda') :
@@ -188,7 +188,7 @@ class DaggerTransformerMSE(nn.Module):
                            
 
       self.scheduler.step(total_val_loss)
-      self.val_step = {'val_loss': total_val_loss/ len(val_loader),
+      val_step = {'val_loss': total_val_loss/ len(val_loader),
                         'distance_d': distance_d / len(val_loader),
                         'distance_dx': distance_dx / len(val_loader),
                         'distance_dy': distance_dy / len(val_loader),
