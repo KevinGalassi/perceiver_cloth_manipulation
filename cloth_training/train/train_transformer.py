@@ -14,8 +14,8 @@ if __name__ == '__main__' :
    folder_name = 'transformer_comparison'
    write_log = True
    save_model = True
-   save_model_path = './cloth_training/saved_model'
-   dataset_path = './cloth_training/dataset/ablation/ablation.pt'
+   save_model_path = './saved_model'
+   dataset_path = './dataset/ablation/ablation.pt'
 
 
    #load hparams from file
@@ -94,7 +94,7 @@ if __name__ == '__main__' :
       dataset.set_obs_type('heatmap')
       dataset.set_output_type('heatmap')
       dataset.to_device(torch.device('cpu'))
-      dataset.shuffle_points()
+      #dataset.shuffle_points()
 
       val_sample  = int(len(dataset) * hparams['val_ratio'])
       train_dataset, val_dataset = torch.utils.data.random_split(dataset, [len(dataset) - val_sample, val_sample])
@@ -105,7 +105,8 @@ if __name__ == '__main__' :
 
       # MODEL CREATION
       agent = DaggerTransformer(**hparams)
-      agent.to(device=torch.device('cuda'))
+      input('pippo')
+      agent.to('cuda:0')
       ### LOG ##
       run_id = folder_name + '-'  + str(time.strftime("%m-%d-%H-%M"))
       wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)

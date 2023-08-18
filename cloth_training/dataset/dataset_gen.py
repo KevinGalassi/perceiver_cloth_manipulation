@@ -280,10 +280,7 @@ class GymClothDataset(Dataset):
          self.actions_gaussian[i,:] = gaussian[permuted_indices]
          self.action_prob[i,:]      = prob[permuted_indices]
 
-      for i, ptc in enumerate(self.ptc) :
-         permuted_indices = torch.randperm(ptc.size()[0])
-         # permute the batch
-         self.ptc[i,:] = ptc[permuted_indices,:]
+      
 
 
 if __name__ == '__main__' :

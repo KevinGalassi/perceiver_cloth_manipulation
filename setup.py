@@ -1,6 +1,5 @@
 from setuptools import setup
-from setuptools import setup, find_packages
-
+ 
 setup(
    name='cloth_training',
    version='1.0',
