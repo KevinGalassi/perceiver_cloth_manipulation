@@ -300,7 +300,7 @@ class HeatPerceiver(nn.Module):
                         action_cross_heads = action_cross_heads,
                         action_latent_heads = action_latent_heads,
                         action_latent_layers = action_latent_layers,
-                        lr_action = lr_action
+                        lr_action = lr_action,
                         seed = seed
                         )
 
@@ -861,7 +861,7 @@ class ActionPredictor(nn.Module):
       self.lr                = kwargs.get('lr_action')
       seed = kwargs.get('seed', None)
       set_seed(seed)
-      
+
       # Input Feature Embedding
       self.pts_embedding = nn.Sequential(
          nn.Linear(2, input_embedding_dim//2),
