@@ -112,9 +112,11 @@ class DaggerTransformerCES(nn.Module):
          pts = obs[0].to(device)
          gt_gaussian = gt[0].to(device)
          gt_action = gt[1].to(device)
-         gt_prob = torch.zeros_like(gt_action[:,0]).to(device)
-         gt_prob[torch.where(gt_action[:,0] == 1)[0]] = 1
-         
+         gt_prob = torch.zeros_like(gt_gaussian).to(device)
+         max_indices = torch.argmax(gt_gaussian, dim=1) 
+         gt_prob.scatter_(1, max_indices.view(-1, 1), 1)
+
+
          p,a = self.forward(pts)
          p = p.reshape(b,-1)
          # Get loss function
@@ -170,10 +172,11 @@ class DaggerTransformerCES(nn.Module):
             pts = obs[0].to(device)
             gt_gaussian = gt[0].to(device)
             gt_action = gt[1].to(device)
-            gt_prob = torch.zeros_like(gt_action[:,0]).to(device)
-            gt_prob[torch.where(gt_action[:,0] == 1)[0]] = 1
-            
-            p = self.forward(pts)
+            gt_prob = torch.zeros_like(gt_gaussian).to(device)
+            max_indices = torch.argmax(gt_gaussian, dim=1) 
+            gt_prob.scatter_(1, max_indices.view(-1, 1), 1)
+
+            p,a = self.forward(pts)
             p = p.reshape(b,-1)
 
             id_taken = torch.argmax(p, dim=1)
