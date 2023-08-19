@@ -178,7 +178,7 @@ class HeatPredictor(nn.Module):
       
       # Save Best Model
       if total_val_loss/ len(val_loader) < best_val_loss:
-         self.best_train_loss = val_step['val_loss']
+         self.best_train_loss = val_step['heat_val_loss']
          best_val_loss = total_val_loss/ len(val_loader)
          
       return val_step
@@ -480,7 +480,7 @@ class HeatPerceiver(nn.Module):
       
       # Save Best Model
       if total_val_loss/ len(val_loader) < best_val_loss:
-         self.best_train_loss = val_step['val_loss']
+         self.best_train_loss = val_step['point_val_loss']
          best_val_loss = total_val_loss/ len(val_loader)
 
          

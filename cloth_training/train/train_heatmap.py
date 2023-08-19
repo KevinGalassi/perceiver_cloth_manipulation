@@ -202,3 +202,5 @@ if __name__ == '__main__' :
 
       except RuntimeError as e:
          print('Fail to load the configuration, continu....')
+
+      wandb.finish()

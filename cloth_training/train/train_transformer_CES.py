@@ -17,19 +17,23 @@ if __name__ == '__main__' :
    write_log = True
    save_model = True
 
-   hyperparameters = [
-                        {'num_epochs' : 300,
-                        'batch_size' : 128,            
-                        'val_ratio'  : 0.2,
-                        'seed' : 42,
+   '''
+   {'num_epochs' : 300,
+   'batch_size' : 128,            
+   'val_ratio'  : 0.2,
+   'seed' : 42,
 
-                        #Heat Predictor Perceiver
-                        'depth' : 1,
-                        'layers' : 3,
-                        'input_embedding_dim' : 128,
-                        'num_latent_heads' : 4,
-                        'lr' : 1e-4,
-                        },
+   #Heat Predictor Perceiver
+   'depth' : 1,
+   'layers' : 3,
+   'input_embedding_dim' : 128,
+   'num_latent_heads' : 4,
+   'lr' : 1e-4,
+   },
+   '''
+   
+   hyperparameters = [
+
                         {'num_epochs' : 300,
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
@@ -114,3 +118,5 @@ if __name__ == '__main__' :
       except Exception as e:  
          print(e)
          continue
+
+      wandb.finish()
