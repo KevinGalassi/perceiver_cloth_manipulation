@@ -24,18 +24,6 @@ if __name__ == '__main__' :
                         'seed' : 42,
 
                         #Heat Predictor Perceiver
-                        'depth' : 1,
-                        'layers' : 3,
-                        'input_embedding_dim' : 128,
-                        'num_latent_heads' : 4,
-                        'lr' : 1e-4,
-                        },
-                        {'num_epochs' : 300,
-                        'batch_size' : 128,            
-                        'val_ratio'  : 0.2,
-                        'seed' : 42,
-
-                        #Heat Predictor Perceiver
                         'depth' : 3,
                         'input_embedding_dim' : 128,
                         'layers' : 3,
