@@ -33,3 +33,6 @@ logs/*.json
 *.pickle
 *.numpy
 *.pt
+
+#Wandb folder
+*/wandb/*
