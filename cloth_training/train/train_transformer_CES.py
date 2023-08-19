@@ -11,14 +11,14 @@ from cloth_training.model.common.model_utils import EarlyStopper
 
 if __name__ == '__main__' :
 
-   folder_name = 'transformer_ces'
+   folder_name = 'transformer_ces1'
    save_model_path = './cloth_training/saved_model'
    dataset_path = './dataset/ablation/ablation.pt'
    write_log = True
    save_model = True
 
    '''
-   {'num_epochs' : 300,
+   {'num_epochs' : 2,
    'batch_size' : 128,            
    'val_ratio'  : 0.2,
    'seed' : 42,
@@ -34,7 +34,7 @@ if __name__ == '__main__' :
    
    hyperparameters = [
 
-                        {'num_epochs' : 300,
+                        {'num_epochs' : 2,
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
@@ -46,7 +46,7 @@ if __name__ == '__main__' :
                         'num_latent_heads' : 4,
                         'lr' : 1e-4,
                         },
-                        {'num_epochs' : 300,
+                        {'num_epochs' : 2,
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
