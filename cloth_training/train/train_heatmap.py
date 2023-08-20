@@ -164,7 +164,7 @@ if __name__ == '__main__' :
                for key, value in epoch_train_result.items():
                      wandb.log({f'Train/{key}': value}, step=epoch)
                      
-            epoch_val_result = agent.validate(val_loader)
+            epoch_val_result = agent.validate_pointprediction(val_loader)
             if write_log:
                for key, value in epoch_val_result.items():
                      wandb.log({f'Val/{key}': value}, step=epoch)
@@ -185,7 +185,7 @@ if __name__ == '__main__' :
                for key, value in epoch_train_result.items():
                      wandb.log({f'Train/{key}': value}, step=epoch)
                      
-            epoch_val_result = agent.validate(val_loader)
+            epoch_val_result = agent.validate_action(val_loader)
             
             if write_log:
                for key, value in epoch_val_result.items():
