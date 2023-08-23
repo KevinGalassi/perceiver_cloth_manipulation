@@ -95,6 +95,7 @@ if __name__ == '__main__' :
          writer.add_text('Hyperparameters', str(hparams))
          writer.flush()
 
+
          stopper = EarlyStopper(patience=10)
 
          ###### 1) TRAIN TRANSFORMER #####

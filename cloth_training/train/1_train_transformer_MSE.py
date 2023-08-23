@@ -77,6 +77,9 @@ if __name__ == '__main__' :
       run_id = folder_name + '-'  + str(time.strftime("%H-%M"))
       wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)
       writer = SummaryWriter(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs', run_id))
+         writer.add_text('Hyperparameters', str(hparams))
+         writer.flush()
+      writer.add_tex
       stopper = EarlyStopper(patience=10)
 
 
