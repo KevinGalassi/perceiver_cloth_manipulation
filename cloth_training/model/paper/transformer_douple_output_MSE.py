@@ -86,7 +86,7 @@ class DaggerTransformerMSE(nn.Module):
       for i in range(0, self.depth, 2):
          for _ in range(self.layers):
             x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x)
+            x = self.transformer_layers[i+1](x) + x
 
       p = self.output_probability_layer(x)
       a = self.output_action_layer(x)

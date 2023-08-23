@@ -31,7 +31,7 @@ class PointPredictor(nn.Module):
 
       # Input Feature Embedding
       self.input_embedding = nn.Sequential(
-         nn.Linear(1, input_embedding_dim//2),
+         nn.Linear(3, input_embedding_dim//2),
          nn.ReLU(),          
          nn.Linear(input_embedding_dim//2, input_embedding_dim),
          nn.ReLU(),
@@ -57,7 +57,7 @@ class PointPredictor(nn.Module):
    def forward(self, pts) :
       x = self.input_embedding(pts)
       for i in range(0, self.depth, 2):
-         for _ in range(self.layers):
+         for _ in range(self.num_latent_layers):
             x = self.transformer_layers[i](x)
             x = self.transformer_layers[i+1](x) + x
 
@@ -121,7 +121,7 @@ class ActionPredictor(nn.Module):
       x = self.cross_ff(x) + x
 
       for i in range(0, self.depth, 2):
-         for _ in range(self.layers):
+         for _ in range(self.num_latent_layers):
             x = self.transformer_layers[i](x)
             x = self.transformer_layers[i+1](x) + x
 
@@ -180,6 +180,7 @@ class DualPerceiver(nn.Module):
                                  input_embedding_dim = input_embedding_dim,
                                  point_latent_heads = point_latent_heads,
                                  point_latent_layers = point_latent_layers,
+                                 point_depth = point_depth,
                                  lr_point = lr_point,
                                  seed  = seed
                                  )
@@ -189,6 +190,7 @@ class DualPerceiver(nn.Module):
                         action_cross_heads = action_cross_heads,
                         action_latent_heads = action_latent_heads,
                         action_latent_layers = action_latent_layers,
+                        action_depth = action_depth,
                         lr_action = lr_action,
                         seed = seed
                         )

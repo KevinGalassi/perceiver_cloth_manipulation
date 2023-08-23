@@ -11,9 +11,9 @@ from cloth_training.model.common.model_utils import set_seed
 from cloth_training.model.common.model_utils import EarlyStopper
 
 if __name__ == '__main__' :
-   folder_name = 'transformer_mse'
+   folder_name = 'mse_2'
    write_log = True
-   save_model = True
+   save_model = False
    save_model_path = './saved_model'
    dataset_path = './dataset/ablation/ablation.pt'
 
@@ -50,56 +50,53 @@ if __name__ == '__main__' :
    #for hparams in tqdm(iterate_hyperparameters(hyperparameters), desc='Hyperparameter Training'):
 
    for hparams in hyperparameters :
-      try :
-         print(f'Start run with hyperparameters: \n {hparams}')
+      print(f'Start run with hyperparameters: \n {hparams}')
 
-         set_seed(hparams['seed'])
+      set_seed(hparams['seed'])
 
-         # Iterating over all combinations of hyperparameters
-         dataset = torch.load(dataset_path)
-         dataset.set_obs_type('heatmap')
-         dataset.set_output_type('heatmap')
-         dataset.to_device(torch.device('cpu'))
-         dataset.shuffle_points()
+      # Iterating over all combinations of hyperparameters
+      dataset = torch.load(dataset_path)
+      dataset.set_obs_type('heatmap')
+      dataset.set_output_type('heatmap')
+      dataset.to_device(torch.device('cpu'))
+      dataset.shuffle_points()
 
-         val_sample  = int(len(dataset) * hparams['val_ratio'])
-         train_dataset, val_dataset = torch.utils.data.random_split(dataset, [len(dataset) - val_sample, val_sample])
+      val_sample  = int(len(dataset) * hparams['val_ratio'])
+      train_dataset, val_dataset = torch.utils.data.random_split(dataset, [len(dataset) - val_sample, val_sample])
+      
+      train_loader = DataLoader(train_dataset, batch_size=hparams['batch_size'], shuffle=True)
+      val_loader   = DataLoader(val_dataset, batch_size=hparams['batch_size'], shuffle=False)
+
+
+      # MODEL CREATION
+      agent = DaggerTransformerMSE(**hparams)
+      agent.to(device=torch.device('cuda'))
+      ### LOG ##
+      run_id = folder_name + '-'  + str(time.strftime("%H-%M"))
+      wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)
+      stopper = EarlyStopper(patience=10)
+
+
+      agent.reset_train()
+      for epoch in tqdm(range(hparams['num_epochs']), desc='Epoch training'):
+         epoch_train_result = agent.trainer(train_loader)
+         if write_log:
+            for key, value in epoch_train_result.items():
+               wandb.log({f'Train/{key}': value}, step=epoch)
+                  
+         epoch_val_result = agent.validate(val_loader)
+         if write_log:
+            for key, value in epoch_val_result.items():
+               wandb.log({f'Val/{key}': value}, step=epoch)
+         if stopper.should_stop(epoch_val_result['val_loss']):
+            break
+      
+      if save_model :
+         model_path = os.path.join(save_model_path, str(run_id)+'.pth')
+         agent.save_best_model(model_path)
          
-         train_loader = DataLoader(train_dataset, batch_size=hparams['batch_size'], shuffle=True)
-         val_loader   = DataLoader(val_dataset, batch_size=hparams['batch_size'], shuffle=False)
+         with open(os.path.join(save_model_path, f'{run_id}_hparams.pickle'), 'wb') as f:
+            pickle.dump(hparams, f, protocol=4)
 
-
-         # MODEL CREATION
-         agent = DaggerTransformerMSE(**hparams)
-         agent.to(device=torch.device('cuda'))
-         ### LOG ##
-         run_id = folder_name + '-'  + str(time.strftime("%H-%M"))
-         wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)
-         stopper = EarlyStopper(patience=10)
-
-
-         agent.reset_train()
-         for epoch in tqdm(range(hparams['num_epochs']), desc='Epoch training'):
-            epoch_train_result = agent.trainer(train_loader)
-            if write_log:
-               for key, value in epoch_train_result.items():
-                  wandb.log({f'Train/{key}': value}, step=epoch)
-                     
-            epoch_val_result = agent.validate(val_loader)
-            if write_log:
-               for key, value in epoch_val_result.items():
-                  wandb.log({f'Val/{key}': value}, step=epoch)
-            if stopper.should_stop(epoch_val_result['val_loss']):
-               break
-         
-         if save_model :
-            model_path = os.path.join(save_model_path, str(run_id)+'.pth')
-            agent.save_best_model(model_path)
-            
-            with open(os.path.join(save_model_path, f'{run_id}_hparams.pickle'), 'wb') as f:
-               pickle.dump(hparams, f, protocol=4)
-      except Exception as e:
-         print(e)
-         continue
 
       wandb.finish()

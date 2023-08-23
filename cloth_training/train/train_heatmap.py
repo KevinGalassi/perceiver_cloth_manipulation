@@ -18,7 +18,7 @@ if __name__ == '__main__' :
 
    #load hparams from file
    hyperparameters = [
-                        {'num_epochs' : 500,
+                        {'num_epochs' : 300,
                         'batch_size' : 8,            
                         'val_ratio'  : 0.03,
                         'dataset_ratio' : 0.95,
@@ -47,7 +47,7 @@ if __name__ == '__main__' :
                         'lr_action' : 1e-4,
                         },
                                                 
-                        {'num_epochs' : 500,
+                        {'num_epochs' : 300,
                         'batch_size' : 8,            
                         'val_ratio'  : 0.03,
                         'dataset_ratio' : 0.95,
@@ -75,7 +75,7 @@ if __name__ == '__main__' :
                         'action_latent_layers' : 3,
                         'lr_action' : 1e-4,
                         },
-                        {'num_epochs' : 500,
+                        {'num_epochs' : 300,
                         'batch_size' : 8,            
                         'val_ratio'  : 0.03,
                         'dataset_ratio' : 0.95,
@@ -162,12 +162,12 @@ if __name__ == '__main__' :
             epoch_train_result = agent.trainer_pointprediction(train_loader)
             if write_log:
                for key, value in epoch_train_result.items():
-                     wandb.log({f'Train/{key}': value}, step=epoch)
+                  wandb.log({f'Train/{key}': value}, step=epoch)
                      
             epoch_val_result = agent.validate_pointprediction(val_loader)
             if write_log:
                for key, value in epoch_val_result.items():
-                     wandb.log({f'Val/{key}': value}, step=epoch)
+                  wandb.log({f'Val/{key}': value}, step=epoch)
                      
          if save_model :
             model_path = os.path.join(save_model_path, str(run_id)+'.pth')
@@ -183,13 +183,13 @@ if __name__ == '__main__' :
             epoch_train_result = agent.trainer_action(train_loader)
             if write_log:
                for key, value in epoch_train_result.items():
-                     wandb.log({f'Train/{key}': value}, step=epoch)
+                  wandb.log({f'Train/{key}': value}, step=epoch)
                      
             epoch_val_result = agent.validate_action(val_loader)
             
             if write_log:
                for key, value in epoch_val_result.items():
-                     wandb.log({f'Val/{key}': value}, step=epoch)
+                  wandb.log({f'Val/{key}': value}, step=epoch)
                      
 
          if save_model :

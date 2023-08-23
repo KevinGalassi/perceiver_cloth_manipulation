@@ -125,12 +125,12 @@ if __name__ == '__main__' :
             epoch_train_result = agent.trainer_pointprediction(train_loader)
             if write_log:
                for key, value in epoch_train_result.items():
-                     wandb.log({f'Train/{key}': value}, step=epoch)
+                  wandb.log({f'Train/{key}': value}, step=epoch)
                      
             epoch_val_result = agent.validate_pointprediction(val_loader)
             if write_log:
                for key, value in epoch_val_result.items():
-                     wandb.log({f'Val/{key}': value}, step=epoch)
+                  wandb.log({f'Val/{key}': value}, step=epoch)
                      
          if save_model :
             model_path = os.path.join(save_model_path, str(run_id)+'.pth')
@@ -146,13 +146,13 @@ if __name__ == '__main__' :
             epoch_train_result = agent.trainer_action(train_loader)
             if write_log:
                for key, value in epoch_train_result.items():
-                     wandb.log({f'Train/{key}': value}, step=epoch)
+                  wandb.log({f'Train/{key}': value}, step=epoch)
                      
             epoch_val_result = agent.validate_action(val_loader)
             
             if write_log:
                for key, value in epoch_val_result.items():
-                     wandb.log({f'Val/{key}': value}, step=epoch)
+                  wandb.log({f'Val/{key}': value}, step=epoch)
                      
 
          if save_model :
@@ -164,6 +164,7 @@ if __name__ == '__main__' :
                pickle.dump(hparams, f, protocol=4)
 
       except RuntimeError as e:
-         print('Fail to load the configuration, continu....')
+         print('Fail to load the configuration')
+         print(e)
 
       wandb.finish()

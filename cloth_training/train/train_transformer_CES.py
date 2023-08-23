@@ -18,7 +18,7 @@ if __name__ == '__main__' :
    save_model = True
 
    '''
-   {'num_epochs' : 2,
+   {'num_epochs' : 300,
    'batch_size' : 128,            
    'val_ratio'  : 0.2,
    'seed' : 42,
@@ -34,7 +34,7 @@ if __name__ == '__main__' :
    
    hyperparameters = [
 
-                        {'num_epochs' : 2,
+                        {'num_epochs' : 300,
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
@@ -46,7 +46,7 @@ if __name__ == '__main__' :
                         'num_latent_heads' : 4,
                         'lr' : 1e-4,
                         },
-                        {'num_epochs' : 2,
+                        {'num_epochs' : 300,
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
