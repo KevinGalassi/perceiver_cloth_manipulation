@@ -32,7 +32,6 @@ class DaggerTransformer(nn.Module):
       input_embedding_dim   = kwargs.get('input_embedding_dim')
       num_latent_heads      = kwargs.get('num_latent_heads')
       num_output_heads      = kwargs.get('num_output_heads')
-      self.layers           = kwargs.get('layers')
       self.depth  = kwargs.get('depth')
       self.lr          = kwargs.get('lr')
       seed        = kwargs.get('seed')
@@ -84,10 +83,9 @@ class DaggerTransformer(nn.Module):
    def forward(self, x):
       x = self.input_embedding(x)
 
-      for i in range(0, self.depth, 2):
-         for _ in range(self.layers):
-            x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x)
+      for i in range(0, len(self.transformer_layers), 2):
+         x = self.transformer_layers[i](x)
+         x = self.transformer_layers[i+1](x) + x
 
 
       o = repeat(self.output, 'n d -> b n d', b = x.shape[0])

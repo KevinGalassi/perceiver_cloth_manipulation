@@ -19,12 +19,11 @@ from cloth_training.model.common.model_utils import set_seed
 
 class PointPredictor(nn.Module):
    def __init__(self, **kwargs) -> None:
-      input_embedding_dim    = kwargs.get('input_embedding_dim')
-      num_latent_heads       = kwargs.get('point_latent_heads')
-      self.num_latent_layers = kwargs.get('point_latent_layers')
-      self.depth             = kwargs.get('point_depth')
-      self.lr                = kwargs.get('lr_point')
-      seed                   = kwargs.get('seed')
+      input_embedding_dim  = kwargs.get('input_embedding_dim')
+      num_latent_heads     = kwargs.get('point_latent_heads')
+      self.num_layers      = kwargs.get('point_layers')
+      self.lr              = kwargs.get('lr_point')
+      seed                 = kwargs.get('seed')
       set_seed(seed)
       super().__init__()
 
@@ -56,10 +55,9 @@ class PointPredictor(nn.Module):
    
    def forward(self, pts) :
       x = self.input_embedding(pts)
-      for i in range(0, self.depth, 2):
-         for _ in range(self.num_latent_layers):
-            x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x) + x
+      for i in range(0, len(self.transformer_layers), 2):
+         x = self.transformer_layers[i](x)
+         x = self.transformer_layers[i+1](x) + x
 
       p = self.output_layer(x)
       return p
@@ -100,11 +98,9 @@ class ActionPredictor(nn.Module):
       #self.self_latent_ff = FeedForward(input_embedding_dim)
 
       self.transformer_layers = nn.ModuleList()
-      for _ in range(self.depth):
+      for _ in range(self.num_latent_layers):
          self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
          self.transformer_layers.append(FeedForward(input_embedding_dim))
-
-
 
       self.output_layer = nn.Sequential(
          nn.Linear(input_embedding_dim, input_embedding_dim//2),
@@ -115,13 +111,12 @@ class ActionPredictor(nn.Module):
 
    def forward(self, pt_taken, pts) :
       
-      pts_e = self.pts_embedding(pt_taken)
+      x = self.pts_embedding(pt_taken)
 
-      x = self.cross_attention(pts_e, context = pts)
-      x = self.cross_ff(x) + x
-
-      for i in range(0, self.depth, 2):
-         for _ in range(self.num_latent_layers):
+      for _ in range(self.depth):
+         x = self.cross_attention(x, context = pts)
+         x = self.cross_ff(x) + x
+         for i in range(0, len(self.transformer_layers), 2):
             x = self.transformer_layers[i](x)
             x = self.transformer_layers[i+1](x) + x
 
@@ -152,22 +147,20 @@ class DualPerceiver(nn.Module):
 
       super().__init__()
 
-      depth               = kwargs.get('depth', 3)
-      input_dim           = kwargs.get('input_dim', 3)
-      input_embedding_dim = kwargs.get('input_embedding_dim', 128)
+      input_dim           = kwargs.get('input_dim')
+      input_embedding_dim = kwargs.get('input_embedding_dim')
 
 
       #Point Network
-      point_depth          = kwargs.get('depth', 3)
-      point_latent_heads   = kwargs.get('point_latent_heads', 8)
-      point_latent_layers  = kwargs.get('point_latent_layers', 3)
-      lr_point             = kwargs.get('lr_point', 1e-4)
+      point_latent_heads   = kwargs.get('point_latent_heads')
+      point_layers         = kwargs.get('point_layers')
+      lr_point             = kwargs.get('lr_point')
       # Action parameters
-      action_depth         = kwargs.get('depth', 3)
-      action_latent_heads  = kwargs.get('action_latent_heads', 8)
-      action_cross_heads   = kwargs.get('action_cross_heads', 8)
-      action_latent_layers = kwargs.get('action_latent_layers', 3)
-      lr_action            = kwargs.get('lr_action', 1e-4)
+      action_depth         = kwargs.get('depth')
+      action_latent_heads  = kwargs.get('action_latent_heads')
+      action_cross_heads   = kwargs.get('action_cross_heads')
+      action_latent_layers = kwargs.get('action_latent_layers')
+      lr_action            = kwargs.get('lr_action')
 
       seed = kwargs.get('seed', None)
       set_seed(seed)
@@ -179,8 +172,7 @@ class DualPerceiver(nn.Module):
                                  input_dim = input_dim,
                                  input_embedding_dim = input_embedding_dim,
                                  point_latent_heads = point_latent_heads,
-                                 point_latent_layers = point_latent_layers,
-                                 point_depth = point_depth,
+                                 point_layers = point_layers,
                                  lr_point = lr_point,
                                  seed  = seed
                                  )
@@ -207,7 +199,6 @@ class DualPerceiver(nn.Module):
       set_seed(seed)
       
    def forward(self, pts):
-
 
       b = pts.shape[0]
             

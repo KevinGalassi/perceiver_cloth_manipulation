@@ -32,12 +32,11 @@ class DaggerTransformerCES(nn.Module):
 
       self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-      input_embedding_dim   = kwargs.get('input_embedding_dim')
-      num_latent_heads      = kwargs.get('num_latent_heads')
-      self.layers           = kwargs.get('layers')
-      self.depth  = kwargs.get('depth')
-      self.lr          = kwargs.get('lr')
-      seed        = kwargs.get('seed')
+      input_embedding_dim  = kwargs.get('input_embedding_dim')
+      num_latent_heads     = kwargs.get('num_latent_heads')
+      self.depth           = kwargs.get('depth')
+      self.lr              = kwargs.get('lr')
+      seed                 = kwargs.get('seed')
 
       set_seed(seed)
 
@@ -84,10 +83,9 @@ class DaggerTransformerCES(nn.Module):
    def forward(self, x):
       x = self.input_embedding(x)
 
-      for i in range(0, self.depth, 2):
-         for _ in range(self.layers):
-            x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x) + x
+      for i in range(0, len(self.transformer_layers), 2):
+         x = self.transformer_layers[i](x)
+         x = self.transformer_layers[i+1](x) + x
 
       p = self.output_probability_layer(x)
       a = self.output_action_layer(x)
@@ -113,8 +111,9 @@ class DaggerTransformerCES(nn.Module):
          gt_gaussian = gt[0].to(device)
          gt_action = gt[1].to(device)
          gt_prob = torch.zeros_like(gt_gaussian).to(device)
-         max_indices = torch.argmax(gt_gaussian, dim=1) 
-         gt_prob.scatter_(1, max_indices.view(-1, 1), 1)
+
+         max_indices = torch.argmax(gt_gaussian, dim=1)
+         gt_prob.scatter_(1, max_indices.unsqueeze(1), 1)
 
 
          p,a = self.forward(pts)
