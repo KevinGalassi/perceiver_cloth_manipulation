@@ -29,12 +29,12 @@ class DaggerTransformer(nn.Module):
 
       self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-      input_embedding_dim   = kwargs.get('input_embedding_dim')
-      num_latent_heads      = kwargs.get('num_latent_heads')
-      num_output_heads      = kwargs.get('num_output_heads')
-      self.depth  = kwargs.get('depth')
-      self.lr          = kwargs.get('lr')
-      seed        = kwargs.get('seed')
+      input_embedding_dim = kwargs.get('input_embedding_dim')
+      num_latent_heads    = kwargs.get('num_latent_heads')
+      num_output_heads    = kwargs.get('num_output_heads')
+      self.depth          = kwargs.get('depth')
+      self.lr             = kwargs.get('lr')
+      seed                = kwargs.get('seed')
 
       set_seed(seed)
 

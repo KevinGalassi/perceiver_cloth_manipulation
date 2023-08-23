@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 import wandb
 from cloth_training.model.common.model_utils import set_seed
 from cloth_training.model.common.model_utils import EarlyStopper
+from torch.utils.tensorboard import SummaryWriter
+
 
 if __name__ == '__main__' :
    folder_name = 'mse_2'
@@ -74,6 +76,7 @@ if __name__ == '__main__' :
       ### LOG ##
       run_id = folder_name + '-'  + str(time.strftime("%H-%M"))
       wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)
+      writer = SummaryWriter(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs', run_id))
       stopper = EarlyStopper(patience=10)
 
 
@@ -83,11 +86,14 @@ if __name__ == '__main__' :
          if write_log:
             for key, value in epoch_train_result.items():
                wandb.log({f'Train/{key}': value}, step=epoch)
-                  
+               writer.add_scalar(f'Train/{key}', value, epoch)
+            writer.flush()
          epoch_val_result = agent.validate(val_loader)
          if write_log:
             for key, value in epoch_val_result.items():
                wandb.log({f'Val/{key}': value}, step=epoch)
+               writer.add_scalar(f'Val/{key}', value, epoch)
+            writer.flush()
          if stopper.should_stop(epoch_val_result['val_loss']):
             break
       

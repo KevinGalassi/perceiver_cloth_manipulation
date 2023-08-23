@@ -44,10 +44,8 @@ class HeatPredictor(nn.Module):
       self.latents = nn.Parameter(torch.normal(0, 0.2, (num_latents, input_embedding_dim)))
 
       # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(self.num_latent_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
 
       # Cross-attention module
       self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
@@ -72,14 +70,14 @@ class HeatPredictor(nn.Module):
          x = self.cross_attention(x, context = data)
          x = self.cross_ff(x) + x
 
-         for i in range(0, len(self.transformer_layers), 2):
-            x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x) + x
+         for _ in range(self.num_latent_layers):
+            x = self.self_latent_attention(x) 
+            x = self.self_latent_ff(x) + x
 
       # Output cross attention
       p = self.output_cross_attention(data, context = x)
-      p = self.output_layer(p)
 
+      p = self.output_layer(p)
       return p
 
    def reset_train(self) :
@@ -189,11 +187,11 @@ class HeatPredictor(nn.Module):
 
 class PointPredictor(nn.Module):
    def __init__(self, **kwargs) -> None:
-      input_embedding_dim  = kwargs.get('input_embedding_dim')
-      num_latent_heads     = kwargs.get('point_latent_heads')
-      num_layers           = kwargs.get('point_latent_layers')
-      self.lr              = kwargs.get('lr_point')
-      seed                 = kwargs.get('seed')
+      input_embedding_dim    = kwargs.get('input_embedding_dim')
+      num_latent_heads       = kwargs.get('point_latent_heads')
+      self.num_latent_layers = kwargs.get('point_latent_layers')
+      self.lr                = kwargs.get('lr_point')
+      seed                   = kwargs.get('seed')
       set_seed(seed)
       super().__init__()
 
@@ -206,10 +204,8 @@ class PointPredictor(nn.Module):
       )
 
       # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(num_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
 
       # Decoder
       self.output_layer = nn.Sequential(
@@ -224,9 +220,9 @@ class PointPredictor(nn.Module):
 
       x = inputs + data
 
-      for i in range(0, len(self.transformer_layers), 2):
-         x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x) + x
+      for _ in range(self.num_latent_layers):
+         x = self.self_latent_attention(x) 
+         x = self.self_latent_ff(x) + x
 
       p = self.output_layer(x)
       return p
@@ -241,11 +237,11 @@ class ActionPredictor(nn.Module):
    def __init__(self, **kwargs) -> None:
       super().__init__()
 
-      input_embedding_dim = kwargs.get('input_embedding_dim')
-      num_cross_heads     = kwargs.get('action_cross_heads')
-      num_latent_heads    = kwargs.get('action_latent_heads')
-      latent_layers       = kwargs.get('action_latent_layers')
-      self.lr             = kwargs.get('lr_action')
+      input_embedding_dim    = kwargs.get('input_embedding_dim')
+      num_cross_heads        = kwargs.get('action_cross_heads')
+      num_latent_heads       = kwargs.get('action_latent_heads')
+      self.num_latent_layers = kwargs.get('action_latent_layers')
+      self.lr                = kwargs.get('lr_action')
       seed = kwargs.get('seed', None)
       set_seed(seed)
 
@@ -262,10 +258,8 @@ class ActionPredictor(nn.Module):
       self.cross_ff = FeedForward(input_embedding_dim)
 
       # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(latent_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
 
       self.output_layer = nn.Sequential(
          nn.Linear(input_embedding_dim, input_embedding_dim//2),
@@ -281,9 +275,9 @@ class ActionPredictor(nn.Module):
       x = self.cross_attention(pts_e, context = pts)
       x = self.cross_ff(x) + x
 
-      for i in range(0, len(self.transformer_layers), 2):
-         x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x) + x
+      for _ in range(self.num_latent_layers):
+         x = self.self_latent_attention(x) 
+         x = self.self_latent_ff(x) + x
 
       a = self.output_layer(x)
 

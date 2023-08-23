@@ -44,10 +44,8 @@ class HeatPredictor(nn.Module):
       self.latents = nn.Parameter(torch.normal(0, 0.2, (num_latents, input_embedding_dim)))
 
       # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(self.num_latent_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
 
       # Cross-attention module
       self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
@@ -72,14 +70,14 @@ class HeatPredictor(nn.Module):
          x = self.cross_attention(x, context = data)
          x = self.cross_ff(x) + x
 
-         for i in range(0, len(self.transformer_layers), 2):
-            x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x) + x
+         for _ in range(self.num_latent_layers):
+            x = self.self_latent_attention(x) 
+            x = self.self_latent_ff(x) + x
 
       # Output cross attention
       p = self.output_cross_attention(data, context = x)
-      p = self.output_layer(p)
 
+      p = self.output_layer(p)
       return p
 
    def reset_train(self) :
@@ -185,29 +183,42 @@ class HeatPredictor(nn.Module):
          
       return val_step
 
-
-
 class PointPredictor(nn.Module):
    def __init__(self, **kwargs) -> None:
-      input_embedding_dim  = kwargs.get('input_embedding_dim')
-      num_latent_heads     = kwargs.get('point_latent_heads')
-      num_layers           = kwargs.get('point_latent_layers')
-      self.lr              = kwargs.get('lr_point')
-      seed                 = kwargs.get('seed')
+      input_embedding_dim    = kwargs.get('input_embedding_dim')
+      heat_embedding_dim     = kwargs.get('heat_embedding_dim')
+      point_embedding_dim    = kwargs.get('point_embedding_dim')
+      num_latent_heads       = kwargs.get('point_latent_heads')
+      self.num_latent_layers = kwargs.get('point_latent_layers')
+      self.lr                = kwargs.get('lr_point')
+      seed                   = kwargs.get('seed')
       set_seed(seed)
       super().__init__()
 
       # Input Feature Embedding
       self.heat_embedding = nn.Sequential(
-         nn.Linear(1, input_embedding_dim//2),
+         nn.Linear(1, heat_embedding_dim//2),
          nn.ReLU(),          
-         nn.Linear(input_embedding_dim//2, input_embedding_dim),
+         nn.Linear(heat_embedding_dim//2, heat_embedding_dim),
          nn.ReLU(),
       )
 
+      self.point_embedding = nn.Sequential(
+         nn.Linear(3, point_embedding_dim//2),
+         nn.ReLU(),
+         nn.Linear(point_embedding_dim//2, point_embedding_dim),
+         nn.ReLU(),
+      )
+
+      self.input_embedding = nn.Sequential(
+         nn.Linear(heat_embedding_dim + point_embedding_dim, int(input_embedding_dim//2)),
+         nn.ReLU(),
+         nn.Linear(int(input_embedding_dim//2), input_embedding_dim),
+         nn.ReLU(),
+      )
       # Latent trasnformer module
       self.transformer_layers = nn.ModuleList()
-      for _ in range(num_layers):
+      for _ in range(self.depth):
          self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
          self.transformer_layers.append(FeedForward(input_embedding_dim))
 
@@ -218,15 +229,17 @@ class PointPredictor(nn.Module):
                nn.Linear(input_embedding_dim//2, 1)
             )
    
-   def forward(self, inputs, heat) :
+   def forward(self, pts, heat) :
+
+      ptse = self.point_embedding(pts)     
       heat = heat.reshape(heat.shape[0], -1, 1)
-      data = self.heat_embedding(heat)
+      he = self.heat_embedding(heat)
 
-      x = inputs + data
+      x = torch.cat([ptse, he], dim=-1)
 
-      for i in range(0, len(self.transformer_layers), 2):
+      for i in range(0, len(self.transformer_layers),2):
          x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x) + x
+         x = self.transformer_layers[i+1](x)
 
       p = self.output_layer(x)
       return p
@@ -236,69 +249,7 @@ class PointPredictor(nn.Module):
       self.optimizer = Lamb(self.parameters(), lr=self.lr)
       self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
 
-class ActionPredictor(nn.Module):
-
-   def __init__(self, **kwargs) -> None:
-      super().__init__()
-
-      input_embedding_dim = kwargs.get('input_embedding_dim')
-      num_cross_heads     = kwargs.get('action_cross_heads')
-      num_latent_heads    = kwargs.get('action_latent_heads')
-      latent_layers       = kwargs.get('action_latent_layers')
-      self.lr             = kwargs.get('lr_action')
-      seed = kwargs.get('seed', None)
-      set_seed(seed)
-
-      # Input Feature Embedding
-      self.pts_embedding = nn.Sequential(
-         nn.Linear(2, input_embedding_dim//2),
-         nn.ReLU(),          
-         nn.Linear(input_embedding_dim//2, input_embedding_dim),
-         nn.ReLU(),
-      )
-
-      # Input cross attention between points (Q) and point taken (K,V)
-      self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
-      self.cross_ff = FeedForward(input_embedding_dim)
-
-      # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(latent_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
-
-      self.output_layer = nn.Sequential(
-         nn.Linear(input_embedding_dim, input_embedding_dim//2),
-         nn.ReLU(),
-         nn.Linear(input_embedding_dim//2, 2)
-      )
-
-
-   def forward(self, pt_taken, pts) :
-      
-      pts_e = self.pts_embedding(pt_taken)
-
-      x = self.cross_attention(pts_e, context = pts)
-      x = self.cross_ff(x) + x
-
-      for i in range(0, len(self.transformer_layers), 2):
-         x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x) + x
-
-      a = self.output_layer(x)
-
-      return a.tanh()
-   
-
-
-   def reset_train(self) :
-      self.criterion = nn.MSELoss()
-      self.optimizer = Lamb(self.parameters(), lr=self.lr)
-      self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
-
-
-
-class HeatPerceiver(nn.Module):
+class HeatPerceiverCAT(nn.Module):
 
    def __init__(self, **kwargs) -> None:
       '''
@@ -325,22 +276,21 @@ class HeatPerceiver(nn.Module):
       #Point Network
       point_latent_heads   = kwargs.get('point_latent_heads', 8)
       point_latent_layers  = kwargs.get('point_latent_layers', 3)
+      heat_embedding_dim   = kwargs.get('heat_embedding_dim', 128)
+      point_embedding_dim  = kwargs.get('point_embedding_dim', 128)
       lr_point             = kwargs.get('lr_point', 1e-4)
       # Action parameters
       action_latent_heads  = kwargs.get('action_latent_heads', 8)
       action_cross_heads   = kwargs.get('action_cross_heads', 8)
       action_latent_layers = kwargs.get('action_latent_layers', 3)
+      action_depth         = kwargs.get('action_depth', 1)
       lr_action            = kwargs.get('lr_action', 1e-4)
 
       seed = kwargs.get('seed', None)
       set_seed(seed)
 
-      self.use_gt_prediction = False
-
-      
-
+      self.use_gt_prediction = False 
       self.init_params = dict(kwargs)
-      
 
       self.heat_predictor = HeatPredictor(
                         depth = depth,
@@ -357,6 +307,8 @@ class HeatPerceiver(nn.Module):
 
       self.point_prediction = PointPredictor(
                                  input_embedding_dim = input_embedding_dim,
+                                 heat_embedding_dim = heat_embedding_dim,
+                                 point_embedding_dim = point_embedding_dim,
                                  point_latent_heads = point_latent_heads,
                                  point_latent_layers = point_latent_layers,
                                  lr_point = lr_point,
@@ -368,6 +320,7 @@ class HeatPerceiver(nn.Module):
                         action_cross_heads = action_cross_heads,
                         action_latent_heads = action_latent_heads,
                         action_latent_layers = action_latent_layers,
+                        action_depth = action_depth,
                         lr_action = lr_action,
                         seed = seed
                         )
@@ -697,6 +650,7 @@ class HeatPerceiver(nn.Module):
             distance_x  = torch.sqrt(torch.sum((a[:,0] - gt_action[:,0])**2, dim=0)).sum().item() / b
             distance_y  = torch.sqrt(torch.sum((a[:,1] - gt_action[:,1])**2, dim=0)).sum().item() / b
 
+
             distance_d  = torch.sqrt(torch.sum((a[:,2:] - gt_action[:,2:])**2, dim=1)).sum().item() / b
             distance_dx = torch.sqrt(torch.sum((a[:,-2] - gt_action[:,-2])**2, dim=0)).sum().item() / b
             distance_dy = torch.sqrt(torch.sum((a[:,-1] - gt_action[:,-1])**2, dim=0)).sum().item() / b
@@ -916,6 +870,71 @@ class HeatPerceiver(nn.Module):
 
       return concatenated_image
 
+class ActionPredictor(nn.Module):
+
+   def __init__(self, **kwargs) -> None:
+      super().__init__()
+
+      input_embedding_dim    = kwargs.get('input_embedding_dim')
+      num_cross_heads        = kwargs.get('action_cross_heads')
+      num_latent_heads       = kwargs.get('action_latent_heads')
+      self.depth           = kwargs.get('action_depth')
+      self.num_latent_layers = kwargs.get('action_latent_layers')
+      self.lr                = kwargs.get('lr_action')
+
+      seed = kwargs.get('seed', None)
+      set_seed(seed)
+
+      # Input Feature Embedding
+      self.pts_embedding = nn.Sequential(
+         nn.Linear(2, input_embedding_dim//2),
+         nn.ReLU(),          
+         nn.Linear(input_embedding_dim//2, input_embedding_dim),
+         nn.ReLU(),
+      )
+
+      # Input cross attention between points (Q) and point taken (K,V)
+      self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
+      self.cross_ff = FeedForward(input_embedding_dim)
+
+      # Latent trasnformer module
+      self.transformer_layers = nn.ModuleList()
+      for _ in range(self.depth):
+         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
+         self.transformer_layers.append(FeedForward(input_embedding_dim))
+
+      self.output_layer = nn.Sequential(
+         nn.Linear(input_embedding_dim, input_embedding_dim//2),
+         nn.ReLU(),
+         nn.Linear(input_embedding_dim//2, 2)
+      )
+
+
+   def forward(self, pt_taken, pts) :
+      
+      x = self.pts_embedding(pt_taken)
+
+      for _ in self.depth:
+         x = self.cross_attention(x, context = pts)
+         x = self.cross_ff(x) + x
+
+         for i in range(0, self.num_latent_layers, 2):
+            x = self.transformer_layers[i](x)
+            x = self.transformer_layers[2*i+1](x) + x
+
+      a = self.output_layer(x)
+
+      return a.tanh()
+   
+
+
+   def reset_train(self) :
+      self.criterion = nn.MSELoss()
+      self.optimizer = Lamb(self.parameters(), lr=self.lr)
+      self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
+
+
+
 
 
 
@@ -947,11 +966,12 @@ if __name__ == '__main__' :
                'action_latent_heads' : 8,
                'action_cross_heads' : 8,
                'action_latent_layers' : 3,
+               'action_depth' : 1,
                'lr_action' : 1e-4,
                }
 
 
-   agent = HeatPerceiver(**hparams)
+   agent = HeatPerceiverCAT(**hparams)
 
 
 
