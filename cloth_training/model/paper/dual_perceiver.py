@@ -41,7 +41,7 @@ class PointPredictor(nn.Module):
       #self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
       #self.self_latent_ff = FeedForward(input_embedding_dim)
       self.transformer_layers = nn.ModuleList()
-      for _ in range(self.depth):
+      for _ in range(self.num_layers):
          self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
          self.transformer_layers.append(FeedForward(input_embedding_dim))
 
@@ -156,12 +156,11 @@ class DualPerceiver(nn.Module):
       point_layers         = kwargs.get('point_layers')
       lr_point             = kwargs.get('lr_point')
       # Action parameters
-      action_depth         = kwargs.get('depth')
+      action_depth         = kwargs.get('action_depth')
       action_latent_heads  = kwargs.get('action_latent_heads')
       action_cross_heads   = kwargs.get('action_cross_heads')
       action_latent_layers = kwargs.get('action_latent_layers')
       lr_action            = kwargs.get('lr_action')
-
       seed = kwargs.get('seed', None)
       set_seed(seed)
 

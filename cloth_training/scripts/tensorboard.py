@@ -9,6 +9,10 @@ if __name__ == "__main__":
             ]
    ports = [6020, 6050, 6090, 6110]
 
+   logdirs = ['/home/kgalassi/paper/cloth_training/cloth_training/train/logs/transformer_heat_sum',
+            '/home/kgalassi/paper/cloth_training/cloth_training/train/logs/transformer_heat_cat',]
+   ports = [6020, 6025]
+
    log_path = '/home/kgalassi/code/cloth/cloth_training/cloth_training/model/logs'
 
    def terminate_process_on_port(port):

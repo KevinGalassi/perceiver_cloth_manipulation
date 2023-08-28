@@ -785,7 +785,6 @@ class EarlyStopper:
             self.no_improvement_count += 1
             if self.no_improvement_count >= self.patience:
                 self.early_stop = True
-                self.stopped_epoch = self.epoch
         return self.early_stop
     
 

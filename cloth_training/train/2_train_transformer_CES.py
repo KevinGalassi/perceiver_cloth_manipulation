@@ -25,6 +25,7 @@ if __name__ == '__main__' :
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
+                        'loss_weight' : 0.5,
 
                         #Heat Predictor Perceiver
                         'depth' : 1,
@@ -36,6 +37,7 @@ if __name__ == '__main__' :
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
+                        'loss_weight' : 0.5,
 
                         #Heat Predictor Perceiver
                         'depth' : 3,
@@ -47,6 +49,7 @@ if __name__ == '__main__' :
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
+                        'loss_weight' : 0.5,
 
                         #Heat Predictor Perceiver
                         'depth' : 3,
@@ -82,7 +85,7 @@ if __name__ == '__main__' :
          ### LOG ##
          run_id = folder_name + '-'  + str(time.strftime("%m-%d-%H-%M"))
          wandb.init(project="cloth_attention_ablation", name=str(run_id), config=hparams)
-         writer = SummaryWriter(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs', run_id))
+         writer = SummaryWriter(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs', folder_name, run_id))
          writer.add_text('Hyperparameters', str(hparams))
          writer.flush()
 

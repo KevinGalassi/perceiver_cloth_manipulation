@@ -44,8 +44,11 @@ class HeatPredictor(nn.Module):
       self.latents = nn.Parameter(torch.normal(0, 0.2, (num_latents, input_embedding_dim)))
 
       # Latent trasnformer module
-      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
-      self.self_latent_ff = FeedForward(input_embedding_dim)
+      self.transformer_layers = nn.ModuleList()
+      for _ in range(self.num_latent_layers):
+         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
+         self.transformer_layers.append(FeedForward(input_embedding_dim))
+
 
       # Cross-attention module
       self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
@@ -70,9 +73,11 @@ class HeatPredictor(nn.Module):
          x = self.cross_attention(x, context = data)
          x = self.cross_ff(x) + x
 
-         for _ in range(self.num_latent_layers):
-            x = self.self_latent_attention(x) 
-            x = self.self_latent_ff(x) + x
+         for i in range(0, len(self.transformer_layers), 2):
+            x = self.transformer_layers[i](x)
+            x = self.transformer_layers[i+1](x) + x
+
+
 
       # Output cross attention
       p = self.output_cross_attention(data, context = x)
@@ -189,7 +194,7 @@ class PointPredictor(nn.Module):
       heat_embedding_dim     = kwargs.get('heat_embedding_dim')
       point_embedding_dim    = kwargs.get('point_embedding_dim')
       num_latent_heads       = kwargs.get('point_latent_heads')
-      self.num_latent_layers = kwargs.get('point_latent_layers')
+      self.depth             = kwargs.get('point_depth')
       self.lr                = kwargs.get('lr_point')
       seed                   = kwargs.get('seed')
       set_seed(seed)
@@ -231,15 +236,16 @@ class PointPredictor(nn.Module):
    
    def forward(self, pts, heat) :
 
-      ptse = self.point_embedding(pts)     
+      ptse = self.point_embedding(pts)          # (b, n, pt_emb)
+      
       heat = heat.reshape(heat.shape[0], -1, 1)
-      he = self.heat_embedding(heat)
+      he = self.heat_embedding(heat)            # (b, n, heat_emb)
 
-      x = torch.cat([ptse, he], dim=-1)
-
+      x = torch.cat([ptse, he], dim=-1)         # (b, n, pt_emb + heat_emb)
+      x = self.input_embedding(x)               # (b, n, input_emb)      
       for i in range(0, len(self.transformer_layers),2):
          x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x)
+         x = self.transformer_layers[i+1](x) + x
 
       p = self.output_layer(x)
       return p
@@ -275,7 +281,7 @@ class HeatPerceiverCAT(nn.Module):
 
       #Point Network
       point_latent_heads   = kwargs.get('point_latent_heads', 8)
-      point_latent_layers  = kwargs.get('point_latent_layers', 3)
+      point_depth  = kwargs.get('point_depth', 3)
       heat_embedding_dim   = kwargs.get('heat_embedding_dim', 128)
       point_embedding_dim  = kwargs.get('point_embedding_dim', 128)
       lr_point             = kwargs.get('lr_point', 1e-4)
@@ -310,7 +316,7 @@ class HeatPerceiverCAT(nn.Module):
                                  heat_embedding_dim = heat_embedding_dim,
                                  point_embedding_dim = point_embedding_dim,
                                  point_latent_heads = point_latent_heads,
-                                 point_latent_layers = point_latent_layers,
+                                 point_depth = point_depth,
                                  lr_point = lr_point,
                                  seed  = seed
                                  )
@@ -403,8 +409,8 @@ class HeatPerceiverCAT(nn.Module):
 
          # forward + backward + optimize
          heat = self.heat_predictor(pts)
-         inputs = self.heat_predictor.input_embedding(pts)
-         p = self.point_prediction(inputs, heat)
+         #inputs = self.heat_predictor.input_embedding(pts)
+         p = self.point_prediction(pts, heat)
 
          p = p.reshape(b, -1)
          # Get loss function
@@ -470,8 +476,8 @@ class HeatPerceiverCAT(nn.Module):
 
             # forward + backward + optimize
             heat =self.heat_predictor(pts)
-            inputs = self.heat_predictor.input_embedding(pts)
-            p = self.point_prediction(inputs, heat)
+            #inputs = self.heat_predictor.input_embedding(pts)
+            p = self.point_prediction(pts, heat)
             p = p.reshape(b, -1)
 
             # Get loss function
@@ -539,7 +545,7 @@ class HeatPerceiverCAT(nn.Module):
          npoins = pts.shape[1]
 
 
-         inputs = self.heat_predictor.input_embedding(pts)
+         inputs = self.point_prediction.point_embedding(pts)
          
          pt_taken = pts[torch.arange(b), torch.where(gt_gaussian == 1)[1], :2].unsqueeze(1)
 
@@ -593,7 +599,9 @@ class HeatPerceiverCAT(nn.Module):
 
             b = pts.shape[0]
             
-            inputs = self.heat_predictor.input_embedding(pts)
+            inputs = self.point_prediction.point_embedding(pts)
+
+            #inputs = self.heat_predictor.input_embedding(pts)
             pt_taken = pts[torch.arange(b), torch.where(gt_gaussian == 1)[1], :2].unsqueeze(1)
 
             a = self.action_predciton.forward(pt_taken, inputs)
@@ -878,7 +886,7 @@ class ActionPredictor(nn.Module):
       input_embedding_dim    = kwargs.get('input_embedding_dim')
       num_cross_heads        = kwargs.get('action_cross_heads')
       num_latent_heads       = kwargs.get('action_latent_heads')
-      self.depth           = kwargs.get('action_depth')
+      self.depth             = kwargs.get('action_depth')
       self.num_latent_layers = kwargs.get('action_latent_layers')
       self.lr                = kwargs.get('lr_action')
 
@@ -899,7 +907,7 @@ class ActionPredictor(nn.Module):
 
       # Latent trasnformer module
       self.transformer_layers = nn.ModuleList()
-      for _ in range(self.depth):
+      for _ in range(self.num_latent_layers):
          self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
          self.transformer_layers.append(FeedForward(input_embedding_dim))
 
@@ -914,13 +922,13 @@ class ActionPredictor(nn.Module):
       
       x = self.pts_embedding(pt_taken)
 
-      for _ in self.depth:
+      for _ in range(self.depth):
          x = self.cross_attention(x, context = pts)
          x = self.cross_ff(x) + x
 
-         for i in range(0, self.num_latent_layers, 2):
+         for i in range(0, len(self.transformer_layers), 2):
             x = self.transformer_layers[i](x)
-            x = self.transformer_layers[2*i+1](x) + x
+            x = self.transformer_layers[i+1](x) + x
 
       a = self.output_layer(x)
 

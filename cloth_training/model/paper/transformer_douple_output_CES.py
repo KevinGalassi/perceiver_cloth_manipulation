@@ -36,6 +36,7 @@ class DaggerTransformerCES(nn.Module):
       num_latent_heads     = kwargs.get('num_latent_heads')
       self.depth           = kwargs.get('depth')
       self.lr              = kwargs.get('lr')
+      loss_weight          = kwargs.get('loss_weight')
       seed                 = kwargs.get('seed')
 
       set_seed(seed)
@@ -68,7 +69,8 @@ class DaggerTransformerCES(nn.Module):
          nn.ReLU(),
          nn.Linear(input_embedding_dim//2, 2)
       )
-      self.loss_weight = nn.Parameter(torch.tensor(0.5))
+      #  
+      self.loss_weight = loss_weight
       self.best_val_loss = float('inf')
 
 
@@ -147,6 +149,7 @@ class DaggerTransformerCES(nn.Module):
                            'distance_dy': distance_dy / len(train_loader),
                            'angle': angle / len(train_loader),
                            'distance_prob': distance_prob / len(train_loader),
+                           #'loss_weight': self.loss_weight.item(),
                            'lr': lr
                            }
 
@@ -201,6 +204,7 @@ class DaggerTransformerCES(nn.Module):
                         'distance_dy': distance_dy / len(val_loader),
                         'angle': angle / len(val_loader),
                         'distance_prob': distance_prob / len(val_loader),
+                        #'loss_weight': self.loss_weight.item(),
                         }
       
       # Save Best Model
