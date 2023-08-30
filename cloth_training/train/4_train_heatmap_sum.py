@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 
 from cloth_training.dataset.dataset_gen import GymClothDataset
 from cloth_training.model.paper.perceiver_heatmap import HeatPerceiver
+
 from cloth_training.model.common.model_utils import set_seed
 from cloth_training.model.common.model_utils import EarlyStopper
 

@@ -23,7 +23,40 @@ if __name__ == '__main__' :
 
    #load hparams from file
    hyperparameters = [
-                     { 'num_epochs' : 300,
+                     { 
+                        'num_epochs' : 300,
+                        'batch_size' : 8,            
+                        'val_ratio'  : 0.03,
+                        'dataset_ratio' : 0.95,
+                        'seed' : 42,
+
+                        #Heat Predictor Perceiver
+                        'depth' : 3,
+                        'input_dim' : 3,
+                        'input_embedding_dim' : 128,
+                        'num_latents' : 50,
+                        'num_cross_heads' : 4,
+                        'num_output_heads' : 4,
+                        'num_latent_heads' : 4,
+                        'point_depth' : 3,
+                        'lr_heat' : 1e-4,
+
+                        #Point Network
+                        'point_latent_heads' : 4,
+                        'point_latent_layers' : 1,
+                        'heat_embedding_dim' : 128,
+                        'point_embedding_dim': 128,
+                        'lr_point' : 1e-4,
+
+                        # Action parameters
+                        'action_latent_heads' : 4,
+                        'action_cross_heads' : 4,
+                        'action_latent_layers' : 3,
+                        'action_depth' : 1,
+                        'lr_action' : 1e-4,
+                     },
+                     { 
+                        'num_epochs' : 300,
                         'batch_size' : 8,            
                         'val_ratio'  : 0.03,
                         'dataset_ratio' : 0.95,
@@ -53,39 +86,9 @@ if __name__ == '__main__' :
                         'action_latent_layers' : 1,
                         'action_depth' : 1,
                         'lr_action' : 1e-4,
-                        },
-                        { 'num_epochs' : 300,
-                        'batch_size' : 8,            
-                        'val_ratio'  : 0.03,
-                        'dataset_ratio' : 0.95,
-                        'seed' : 42,
-
-                        #Heat Predictor Perceiver
-                        'depth' : 3,
-                        'input_dim' : 3,
-                        'input_embedding_dim' : 128,
-                        'num_latents' : 50,
-                        'num_cross_heads' : 4,
-                        'num_output_heads' : 4,
-                        'num_latent_heads' : 4,
-                        'point_depth' : 3,
-                        'lr_heat' : 1e-4,
-
-                        #Point Network
-                        'point_latent_heads' : 4,
-                        'point_latent_layers' : 1,
-                        'heat_embedding_dim' : 128,
-                        'point_embedding_dim': 128,
-                        'lr_point' : 1e-4,
-
-                        # Action parameters
-                        'action_latent_heads' : 4,
-                        'action_cross_heads' : 4,
-                        'action_latent_layers' : 3,
-                        'action_depth' : 1,
-                        'lr_action' : 1e-4,
-                        },
-                        { 'num_epochs' : 300,
+                     },
+                     { 
+                        'num_epochs' : 300,
                         'batch_size' : 8,            
                         'val_ratio'  : 0.03,
                         'dataset_ratio' : 0.95,
@@ -115,8 +118,8 @@ if __name__ == '__main__' :
                         'action_latent_layers' : 3,
                         'action_depth' : 1,
                         'lr_action' : 1e-4,
-                        }
-                        ]
+                     }
+                     ]
 
 
    for hparams in hyperparameters :

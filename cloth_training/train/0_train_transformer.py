@@ -7,7 +7,6 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 import wandb
 from cloth_training.model.common.model_utils import set_seed
-from cloth_training.model.common.model_utils import EarlyStopper
 from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == '__main__' :
@@ -49,14 +48,15 @@ if __name__ == '__main__' :
                         'lr' : 1e-4,
                         },
                         {
+                           'num_epochs' : 300,
                         'batch_size' : 128,            
                         'val_ratio'  : 0.2,
                         'seed' : 42,
 
                         #Model
                         'depth' : 3,
-                        'input_embedding_dim' : 128,
                         
+                        'input_embedding_dim' : 128,
                         'num_latent_heads' : 8,
                         'num_output_heads' : 8,
                         'lr' : 1e-4,
@@ -95,9 +95,6 @@ if __name__ == '__main__' :
          writer.add_text('Hyperparameters', str(hparams))
          writer.flush()
 
-
-         stopper = EarlyStopper(patience=10)
-
          ###### 1) TRAIN TRANSFORMER #####
          agent.reset_train()
          for epoch in tqdm(range(hparams['num_epochs']), desc='Epoch training'):
@@ -113,8 +110,7 @@ if __name__ == '__main__' :
                   wandb.log({f'Val/{key}': value}, step=epoch)
                   writer.add_scalar(f'Val/{key}', value, epoch)
                writer.flush()
-            if stopper.should_stop(epoch_val_result['val_loss']):
-               break
+
       
          if save_model :
             model_path = os.path.join(save_model_path, str(run_id)+'.pth')
