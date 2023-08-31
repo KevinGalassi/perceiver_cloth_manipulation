@@ -28,7 +28,7 @@ class HeatPredictor(nn.Module):
       num_latent_heads      = kwargs.get('num_latent_heads')
       self.num_latent_layers = kwargs.get('num_latent_layers')
       self.lr                = kwargs.get('lr_heat')
-      seed                   = kwargs.get('seed')
+      seed                   = kwargs.get('seed',)
 
       set_seed(seed)
       super().__init__()
@@ -44,10 +44,8 @@ class HeatPredictor(nn.Module):
       self.latents = nn.Parameter(torch.normal(0, 0.2, (num_latents, input_embedding_dim)))
 
       # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(self.num_latent_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
 
       # Cross-attention module
       self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
@@ -72,14 +70,14 @@ class HeatPredictor(nn.Module):
          x = self.cross_attention(x, context = data)
          x = self.cross_ff(x) + x
 
-         for i in range(0, len(self.transformer_layers), 2):
-            x = self.transformer_layers[i](x)
-            x = self.transformer_layers[i+1](x) + x
+         for _ in range(self.num_latent_layers):
+            x = self.self_latent_attention(x) 
+            x = self.self_latent_ff(x) + x
 
       # Output cross attention
       p = self.output_cross_attention(data, context = x)
-      p = self.output_layer(p)
 
+      p = self.output_layer(p)
       return p
 
    def reset_train(self) :
@@ -180,21 +178,19 @@ class HeatPredictor(nn.Module):
       
       # Save Best Model
       if total_val_loss/ len(val_loader) < best_val_loss:
-         self.best_train_loss = val_step['heat_val_loss']
+         self.best_train_loss = val_step['val_loss']
          best_val_loss = total_val_loss/ len(val_loader)
          
       return val_step
 
-
-
 class PointPredictor(nn.Module):
    def __init__(self, **kwargs) -> None:
-      input_embedding_dim  = kwargs.get('input_embedding_dim')
-      num_latent_heads     = kwargs.get('point_latent_heads')
-      num_layers           = kwargs.get('point_latent_layers')
-      self.lr              = kwargs.get('lr_point')
-      seed                 = kwargs.get('seed')
-      set_seed(seed)
+      input_embedding_dim    = kwargs.get('input_embedding_dim')
+      num_latent_heads       = kwargs.get('point_latent_heads')
+      self.num_latent_layers = kwargs.get('point_latent_layers')
+      self.lr                = kwargs.get('lr_point')
+      seed                   = kwargs.get('seed')
+
       super().__init__()
 
       # Input Feature Embedding
@@ -206,10 +202,8 @@ class PointPredictor(nn.Module):
       )
 
       # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(num_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
 
       # Decoder
       self.output_layer = nn.Sequential(
@@ -224,9 +218,9 @@ class PointPredictor(nn.Module):
 
       x = inputs + data
 
-      for i in range(0, len(self.transformer_layers), 2):
-         x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x) + x
+      for _ in range(self.num_latent_layers):
+         x = self.self_latent_attention(x) 
+         x = self.self_latent_ff(x) + x
 
       p = self.output_layer(x)
       return p
@@ -235,68 +229,6 @@ class PointPredictor(nn.Module):
       self.criterion = nn.CrossEntropyLoss()
       self.optimizer = Lamb(self.parameters(), lr=self.lr)
       self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
-
-class ActionPredictor(nn.Module):
-
-   def __init__(self, **kwargs) -> None:
-      super().__init__()
-
-      input_embedding_dim = kwargs.get('input_embedding_dim')
-      num_cross_heads     = kwargs.get('action_cross_heads')
-      num_latent_heads    = kwargs.get('action_latent_heads')
-      latent_layers       = kwargs.get('action_latent_layers')
-      self.lr             = kwargs.get('lr_action')
-      seed = kwargs.get('seed', None)
-      set_seed(seed)
-
-      # Input Feature Embedding
-      self.pts_embedding = nn.Sequential(
-         nn.Linear(2, input_embedding_dim//2),
-         nn.ReLU(),          
-         nn.Linear(input_embedding_dim//2, input_embedding_dim),
-         nn.ReLU(),
-      )
-
-      # Input cross attention between points (Q) and point taken (K,V)
-      self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
-      self.cross_ff = FeedForward(input_embedding_dim)
-
-      # Latent trasnformer module
-      self.transformer_layers = nn.ModuleList()
-      for _ in range(latent_layers):
-         self.transformer_layers.append(Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True))
-         self.transformer_layers.append(FeedForward(input_embedding_dim))
-
-      self.output_layer = nn.Sequential(
-         nn.Linear(input_embedding_dim, input_embedding_dim//2),
-         nn.ReLU(),
-         nn.Linear(input_embedding_dim//2, 2)
-      )
-
-
-   def forward(self, pt_taken, pts) :
-      
-      pts_e = self.pts_embedding(pt_taken)
-
-      x = self.cross_attention(pts_e, context = pts)
-      x = self.cross_ff(x) + x
-
-      for i in range(0, len(self.transformer_layers), 2):
-         x = self.transformer_layers[i](x)
-         x = self.transformer_layers[i+1](x) + x
-
-      a = self.output_layer(x)
-
-      return a.tanh()
-   
-
-
-   def reset_train(self) :
-      self.criterion = nn.MSELoss()
-      self.optimizer = Lamb(self.parameters(), lr=self.lr)
-      self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
-
-
 
 class HeatPerceiver(nn.Module):
 
@@ -352,7 +284,7 @@ class HeatPerceiver(nn.Module):
                         num_latent_heads = num_latent_heads,
                         num_latent_layers = num_latent_layers,
                         lr_heat = lr_heat,
-                        seed = seed
+                        seed = seed,
                         )
 
       self.point_prediction = PointPredictor(
@@ -360,7 +292,7 @@ class HeatPerceiver(nn.Module):
                                  point_latent_heads = point_latent_heads,
                                  point_latent_layers = point_latent_layers,
                                  lr_point = lr_point,
-                                 seed  = seed
+                                 seed = seed,
                                  )
 
       self.action_predciton = ActionPredictor(
@@ -369,7 +301,7 @@ class HeatPerceiver(nn.Module):
                         action_latent_heads = action_latent_heads,
                         action_latent_layers = action_latent_layers,
                         lr_action = lr_action,
-                        seed = seed
+                        seed = seed,
                         )
 
 
@@ -548,7 +480,7 @@ class HeatPerceiver(nn.Module):
       
       # Save Best Model
       if total_val_loss/ len(val_loader) < best_val_loss:
-         self.best_train_loss = val_step['point_val_loss']
+         self.best_train_loss = val_step['val_loss']
          best_val_loss = total_val_loss/ len(val_loader)
 
          
@@ -696,6 +628,7 @@ class HeatPerceiver(nn.Module):
             distance    = torch.sqrt(torch.sum((a[:,:2] - gt_action[:,:2])**2, dim=1)).sum().item() / b
             distance_x  = torch.sqrt(torch.sum((a[:,0] - gt_action[:,0])**2, dim=0)).sum().item() / b
             distance_y  = torch.sqrt(torch.sum((a[:,1] - gt_action[:,1])**2, dim=0)).sum().item() / b
+
 
             distance_d  = torch.sqrt(torch.sum((a[:,2:] - gt_action[:,2:])**2, dim=1)).sum().item() / b
             distance_dx = torch.sqrt(torch.sum((a[:,-2] - gt_action[:,-2])**2, dim=0)).sum().item() / b
@@ -915,6 +848,65 @@ class HeatPerceiver(nn.Module):
       concatenated_image = Image.fromarray(np.squeeze(concatenated_heatmap, -1), mode='L')
 
       return concatenated_image
+
+class ActionPredictor(nn.Module):
+
+   def __init__(self, **kwargs) -> None:
+      super().__init__()
+
+      input_embedding_dim    = kwargs.get('input_embedding_dim')
+      num_cross_heads        = kwargs.get('action_cross_heads')
+      num_latent_heads       = kwargs.get('action_latent_heads')
+      self.num_latent_layers = kwargs.get('action_latent_layers')
+      self.lr                = kwargs.get('lr_action')
+      seed                   = kwargs.get('seed')
+
+      # Input Feature Embedding
+      self.pts_embedding = nn.Sequential(
+         nn.Linear(2, input_embedding_dim//2),
+         nn.ReLU(),          
+         nn.Linear(input_embedding_dim//2, input_embedding_dim),
+         nn.ReLU(),
+      )
+
+      # Input cross attention between points (Q) and point taken (K,V)
+      self.cross_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_cross_heads, batch_first=True)
+      self.cross_ff = FeedForward(input_embedding_dim)
+
+      # Latent trasnformer module
+      self.self_latent_attention = Attention(embed_dim=input_embedding_dim, num_heads=num_latent_heads, batch_first=True)
+      self.self_latent_ff = FeedForward(input_embedding_dim)
+
+      self.output_layer = nn.Sequential(
+         nn.Linear(input_embedding_dim, input_embedding_dim//2),
+         nn.ReLU(),
+         nn.Linear(input_embedding_dim//2, 2)
+      )
+
+
+   def forward(self, pt_taken, pts) :
+      
+      pts_e = self.pts_embedding(pt_taken)
+
+      x = self.cross_attention(pts_e, context = pts)
+      x = self.cross_ff(x) + x
+
+      for _ in range(self.num_latent_layers):
+         x = self.self_latent_attention(x) 
+         x = self.self_latent_ff(x) + x
+
+      a = self.output_layer(x)
+
+      return a.tanh()
+   
+
+
+   def reset_train(self) :
+      self.criterion = nn.MSELoss()
+      self.optimizer = Lamb(self.parameters(), lr=self.lr)
+      self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
+
+
 
 
 
