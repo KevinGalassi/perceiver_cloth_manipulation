@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 import wandb
 from cloth_training.model.common.model_utils import set_seed
 
-from cloth_training.model.common.model_utils import EarlyStopper
 
 
 from torch.utils.tensorboard import SummaryWriter
@@ -154,7 +153,6 @@ if __name__ == '__main__' :
       
 
 
-      stopper = EarlyStopper(patience=20)
       ###### 1) TRAIN HEATMAP #####
       for epoch in tqdm(range(hparams['num_epochs']), desc='Epoch training'):
          epoch_train_result = agent.trainer_heat(train_loader)                       
@@ -171,11 +169,6 @@ if __name__ == '__main__' :
                wdb.log({f'Val/heatmap/{key}': value}, step=epoch)
                writer.add_scalar(f'Val/heatmap/{key}', value, epoch)
             writer.flush() 
-            
-
-         # Stop control
-         if stopper.should_stop(epoch_val_result['heat_val_loss']):
-            break
 
       if save_model :
          model_path = os.path.join(save_model_path, str(run_id)+'.pth')
@@ -202,9 +195,6 @@ if __name__ == '__main__' :
                writer.add_scalar(f'Val/{key}', value, epoch)
             writer.flush()
             
-         # Stop control
-         if stopper.should_stop(epoch_val_result['point_val_loss']):
-            break
                   
       if save_model :
          model_path = os.path.join(save_model_path, str(run_id)+'.pth')
@@ -233,8 +223,6 @@ if __name__ == '__main__' :
                writer.add_scalar(f'Val/{key}', value, epoch)
             writer.flush()
             
-         if stopper.should_stop(epoch_val_result['val_loss_action']):
-            break
 
       if save_model :
          model_base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'saved_model', folder_name)
