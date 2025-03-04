@@ -20,6 +20,6 @@ If you find the code or other related resources useful, please consider citing t
   booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)}, 
   title={Attention-Based Cloth Manipulation from Model-free Topological Representation}, 
   year={2024},
-  pages={18207-18213},
-
+  pages={18207-18213}
+}
 ```
